@@ -371,9 +371,6 @@ panel_run_dialog_launch_command (PanelRunDialog *dialog,
 	char      **argv;
 	int         argc;
 	GPid        pid;
-#if GTK_CHECK_VERSION (3, 0, 0)
-	char       *display;
-#endif
 
 	if (!command_is_executable (locale_command, &argc, &argv))
 		return FALSE;
@@ -384,18 +381,14 @@ panel_run_dialog_launch_command (PanelRunDialog *dialog,
 		mate_desktop_prepend_terminal_to_vector (&argc, &argv);
 
 #if GTK_CHECK_VERSION (3, 0, 0)
-	display = gdk_screen_make_display_name (screen);
-
 	result = g_spawn_async (NULL, /* working directory */
 				argv,
 				NULL, /* envp */
 				G_SPAWN_SEARCH_PATH,
 				NULL,
-				&display,
+				NULL,
 				&pid,
 				&error);
-
-	g_free (display);
 #else
 	result = gdk_spawn_on_screen (screen,
 				      NULL, /* working directory */
