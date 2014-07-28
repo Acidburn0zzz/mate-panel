@@ -943,7 +943,11 @@ create_clock_window (ClockData *cd)
         locations_box = calendar_window_get_locations_box (CALENDAR_WINDOW (cd->calendar_popup));
         gtk_widget_show (locations_box);
 
+#if GTK_CHECK_VERSION (3, 0, 0)
+	cd->clock_vbox = gtk_box_new (GTK_ORIENTATION_VERTICAL, 6);
+#else
 	cd->clock_vbox = gtk_vbox_new (FALSE, 6);
+#endif
 	gtk_container_add (GTK_CONTAINER (locations_box), cd->clock_vbox);
 
 	cd->clock_group = gtk_size_group_new (GTK_SIZE_GROUP_HORIZONTAL);
@@ -2488,8 +2492,8 @@ save_cities_store (ClockData *cd)
         ClockLocation *loc;
         GList *node = cd->locations;
         gint len = g_list_length(cd->locations);
-        gchar **array[len + 1];
-        gchar **array_reverse[len + 1];
+        gchar *array[len + 1];
+        const gchar *array_reverse[len + 1];
         gint i = 0;
 
         while (node) {
@@ -2501,12 +2505,15 @@ save_cities_store (ClockData *cd)
         array[i] = NULL;
 
         for (i = 0; i <= (len - 1); i++) {
-                array_reverse [len - i - 1] = g_strdup (array [i]);
+                array_reverse [len - i - 1] = array [i];
         }
         array_reverse[i] = NULL;
 
-        g_settings_set_strv (cd->settings, KEY_CITIES, (const gchar **) array_reverse);
-        /* FIXME free arrays */
+        g_settings_set_strv (cd->settings, KEY_CITIES, array_reverse);
+
+	for (i = 0; i <= (len - 1); i++) {
+                g_free(array [i]);
+        }
 }
 
 static void

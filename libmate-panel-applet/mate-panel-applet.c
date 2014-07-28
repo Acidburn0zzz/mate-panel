@@ -1406,7 +1406,6 @@ mate_panel_applet_get_pixmap (MatePanelApplet     *applet,
 #if GTK_CHECK_VERSION (3, 0, 0)
 	cairo_surface_t *background;
 	cairo_surface_t *surface;
-	cairo_matrix_t   matrix;
 #else
 	gboolean         display_grabbed;
 	GdkPixmap       *pixmap;
@@ -1851,6 +1850,7 @@ mate_panel_applet_change_background(MatePanelApplet *applet,
 				    cairo_pattern_t *pattern)
 {
 	GdkWindow* window = gtk_widget_get_window(GTK_WIDGET(applet));
+	g_return_if_fail(window != NULL);
 	gtk_widget_set_app_paintable(GTK_WIDGET(applet),TRUE);
 	_mate_panel_applet_apply_css(GTK_WIDGET(applet->priv->plug),type);
 	switch (type) {

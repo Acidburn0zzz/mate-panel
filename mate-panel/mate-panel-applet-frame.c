@@ -504,7 +504,11 @@ mate_panel_applet_frame_button_changed (GtkWidget      *widget,
 	case 3:
 		if (event->type == GDK_BUTTON_PRESS ||
 		    event->type == GDK_2BUTTON_PRESS) {
+#if GTK_CHECK_VERSION (3, 0, 0)
+			gdk_device_ungrab (event->device, GDK_CURRENT_TIME);
+#else
 			gdk_pointer_ungrab (GDK_CURRENT_TIME);
+#endif
 
 			MATE_PANEL_APPLET_FRAME_GET_CLASS (frame)->popup_menu (frame,
 									  event->button,

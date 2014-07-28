@@ -1167,7 +1167,11 @@ get_toplevel_screen (char *toplevel_path)
 
 	display = gdk_display_get_default ();
 
+#if GTK_CHECK_VERSION (3, 10, 0)
+	if (screen_n < 0 || screen_n >= 1){
+#else
 	if (screen_n < 0 || screen_n >= gdk_display_get_n_screens (display)) {
+#endif
 #if 0
 		g_warning (_("Panel '%s' is set to be displayed on screen %d which "
 			     "is not currently available. Not loading this panel."),
@@ -1585,7 +1589,7 @@ panel_profile_toplevel_id_list_notify (GSettings *settings,
 
 	toplevel_ids_strv = g_settings_get_strv (settings, key);
 
-	toplevel_ids = mate_gsettings_strv_to_gslist (toplevel_ids_strv);
+	toplevel_ids = mate_gsettings_strv_to_gslist ((const gchar *const *)toplevel_ids_strv);
 	toplevel_ids = panel_g_slist_make_unique (toplevel_ids,
 						  (GCompareFunc)g_strcmp0,
 						  FALSE);
@@ -1629,7 +1633,7 @@ panel_profile_object_id_list_update (gchar **objects)
 	GSList *sublist = NULL, *l;
 	GSList *object_ids;
 
-	object_ids = mate_gsettings_strv_to_gslist (objects);
+	object_ids = mate_gsettings_strv_to_gslist ((const gchar *const *)objects);
 	object_ids = panel_g_slist_make_unique (object_ids,
 						(GCompareFunc)g_strcmp0,
 						FALSE);
@@ -1716,7 +1720,11 @@ panel_profile_ensure_toplevel_per_screen ()
 
 	display = gdk_display_get_default ();
 
+#if GTK_CHECK_VERSION (3, 10, 0)
+	n_screens = 1;
+#else
 	n_screens = gdk_display_get_n_screens (display);
+#endif
 	for (i = 0; i < n_screens; i++) {
 		GdkScreen *screen;
 
