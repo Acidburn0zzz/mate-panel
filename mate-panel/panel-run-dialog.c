@@ -365,7 +365,9 @@ panel_run_dialog_launch_command (PanelRunDialog *dialog,
 				 const char     *command,
 				 const char     *locale_command)
 {
+#if !GTK_CHECK_VERSION (3, 0, 0)
 	GdkScreen  *screen;
+#endif
 	gboolean    result;
 	GError     *error = NULL;
 	char      **argv;
@@ -375,7 +377,9 @@ panel_run_dialog_launch_command (PanelRunDialog *dialog,
 	if (!command_is_executable (locale_command, &argc, &argv))
 		return FALSE;
 
+#if !GTK_CHECK_VERSION (3, 0, 0)
 	screen = gtk_window_get_screen (GTK_WINDOW (dialog->run_dialog));
+#endif
 
 	if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (dialog->terminal_checkbox)))
 		mate_desktop_prepend_terminal_to_vector (&argc, &argv);
@@ -1267,8 +1271,13 @@ file_button_clicked (GtkButton      *button,
 	chooser = gtk_file_chooser_dialog_new (_("Choose a file to append to the command..."),
 					       GTK_WINDOW (dialog->run_dialog),
 					       GTK_FILE_CHOOSER_ACTION_OPEN,
+#if GTK_CHECK_VERSION (3, 10, 0)
+					       _("_Cancel"), GTK_RESPONSE_CANCEL,
+					       _("_OK"), GTK_RESPONSE_OK,
+#else
 					       GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 					       GTK_STOCK_OK, GTK_RESPONSE_OK,
+#endif
 					       NULL);
 
 	gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (chooser),

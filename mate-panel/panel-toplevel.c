@@ -497,7 +497,11 @@ static void panel_toplevel_begin_grab_op(PanelToplevel* toplevel, PanelGrabOpTyp
 	gdk_pointer_grab (window, FALSE,
 			  GDK_POINTER_MOTION_MASK | GDK_BUTTON_RELEASE_MASK,
 			  NULL, cursor, time_);
+#if GTK_CHECK_VERSION (3, 0, 0)
+	g_object_unref (cursor);
+#else
 	gdk_cursor_unref (cursor);
+#endif
 
 	if (grab_keyboard)
 		gdk_keyboard_grab (window, FALSE, time_);
@@ -1458,7 +1462,9 @@ void panel_toplevel_update_edges(PanelToplevel* toplevel)
 	PanelFrameEdge   edges;
 	PanelFrameEdge   inner_edges;
 	PanelFrameEdge   outer_edges;
+#if !GTK_CHECK_VERSION (3, 0, 0)
 	PanelBackground *background;
+#endif
 	int              monitor_width, monitor_height;
 	int              width, height;
 	gboolean         inner_frame = FALSE;
@@ -1473,7 +1479,9 @@ void panel_toplevel_update_edges(PanelToplevel* toplevel)
 
 	edges = PANEL_EDGE_NONE;
 
+#if !GTK_CHECK_VERSION (3, 0, 0)
 	background = &toplevel->priv->panel_widget->background;
+#endif
 
 
 	/* We don't want any bevels with a color/image background */
@@ -3210,7 +3218,7 @@ static gboolean panel_toplevel_expose(GtkWidget* widget, GdkEventExpose* event)
 #if GTK_CHECK_VERSION (3, 0, 0)
 		x = 0;
 		y = 0;
-		height = height;
+		height = 0;
 #else
 		int xthickness, ythickness;
 		x      = allocation.x;
