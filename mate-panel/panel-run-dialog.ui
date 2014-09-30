@@ -127,6 +127,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="expanded">True</property>
+                <property name="expand">True</property>
                 <child>
                   <object class="GtkVBox" id="program_list_box">
                     <property name="visible">True</property>
