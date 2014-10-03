@@ -50,63 +50,64 @@ panel_separator_paint (GtkWidget    *widget,
 #endif
 {
 	PanelSeparator *separator;
-	GtkStyle       *style;
 #if GTK_CHECK_VERSION (3, 0, 0)
+	GtkStyleContext  *style;
 	int             width;
 	int             height;
+	GtkBorder padding;
 #else
+	GtkStyle       *style;
 	GdkWindow      *window;
 	GtkAllocation   allocation;
 #endif
 
 	separator = PANEL_SEPARATOR (widget);
 
-	style = gtk_widget_get_style (widget);
 #if GTK_CHECK_VERSION (3, 0, 0)
+	style = gtk_widget_get_style_context (widget);
 	width = gtk_widget_get_allocated_width (widget);
 	height = gtk_widget_get_allocated_height (widget);
+
+	gtk_style_context_get_padding(style, gtk_widget_get_state_flags (widget), &padding);
 #else
+	style = gtk_widget_get_style (widget);
 	window = gtk_widget_get_window (widget);
 	gtk_widget_get_allocation (widget, &allocation);
 #endif
 
 	if (separator->priv->orientation == GTK_ORIENTATION_HORIZONTAL) {
-		gtk_paint_vline (style,
 #if GTK_CHECK_VERSION (3, 0, 0)
+		gtk_render_line (style,
 				 cr,
+				 (width - padding.top) / 2,
+				 padding.left,
+				 (width - padding.top) / 2,
+				 height - padding.right);
 #else
+		gtk_paint_vline (style,
 				 window,
-#endif
 				 gtk_widget_get_state (widget),
-#if !GTK_CHECK_VERSION (3, 0, 0)
 				 area,
-#endif
 				 widget, "separator",
 				 style->xthickness,
-#if GTK_CHECK_VERSION (3, 0, 0)
-				 height - style->xthickness,
-				 (width - style->xthickness) / 2);
-#else
 				 allocation.height - style->xthickness,
 				 (allocation.width - style->xthickness) / 2);
 #endif
 	} else {
-		gtk_paint_hline (style,
 #if GTK_CHECK_VERSION (3, 0, 0)
+		gtk_render_line (style,
 				 cr,
+				 padding.left,
+				 (height - padding.left) / 2,
+				 width - padding.right,
+				 (height - padding.left) / 2);
 #else
+		gtk_paint_hline (style,
 				 window,
-#endif
 				 gtk_widget_get_state (widget),
-#if !GTK_CHECK_VERSION (3, 0, 0)
 				 area,
-#endif
 				 widget, "separator",
 				 style->ythickness,
-#if GTK_CHECK_VERSION (3, 0, 0)
-				 width - style->ythickness,
-				 (height - style->ythickness) / 2);
-#else
 				 allocation.width - style->ythickness,
 				 (allocation.height  - style->ythickness) / 2);
 #endif
