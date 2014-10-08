@@ -697,7 +697,7 @@ panel_run_dialog_find_command_idle (PanelRunDialog *dialog)
 
 		if (!fuzzy && exec && icon &&
 		    fuzzy_command_match (text, exec, &fuzzy)) {
-			g_free (found_icon);
+			g_clear_object (&found_icon);
 			g_free (found_name);
 
 			found_icon = g_object_ref (icon);
@@ -738,7 +738,7 @@ panel_run_dialog_find_command_idle (PanelRunDialog *dialog)
 /*	panel_run_dialog_set_icon (dialog, found_icon, FALSE); */
 	//FIXME update dialog->program_label
 
-	g_object_unref (found_icon);
+	g_clear_object (&found_icon);
 	g_free (text);
 
 	g_free (dialog->item_name);
@@ -938,7 +938,8 @@ panel_run_dialog_add_items_idle (PanelRunDialog *dialog)
 
 	gtk_tree_view_append_column (GTK_TREE_VIEW (dialog->program_list), column);
 
-	return FALSE;
+	dialog->add_items_idle_id = 0;
+	return G_SOURCE_REMOVE;
 }
 
 static char *
