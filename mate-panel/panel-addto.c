@@ -50,6 +50,7 @@
 #include "panel-addto.h"
 #include "panel-icon-names.h"
 #include "panel-schemas.h"
+#include "panel-stock-icons.h"
 
 typedef struct {
 	PanelWidget *panel_widget;
@@ -265,8 +266,6 @@ panel_addto_make_text (const char *name,
 
 	return result;
 }
-
-#define ICON_SIZE 32
 
 static void
 panel_addto_drag_data_get_cb (GtkWidget        *widget,
@@ -1312,7 +1311,7 @@ panel_addto_dialog_new (PanelWidget *panel_widget)
 	renderer = g_object_new (GTK_TYPE_CELL_RENDERER_PIXBUF,
 				 "xpad", 4,
 				 "ypad", 4,
-				 "stock-size", GTK_ICON_SIZE_MENU,
+				 "stock-size", panel_add_to_icon_get_size(),
 				 NULL);
 
 	gtk_tree_view_insert_column_with_attributes (GTK_TREE_VIEW (dialog->tree_view),
