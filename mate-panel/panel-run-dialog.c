@@ -92,7 +92,7 @@ typedef struct {
 	gboolean	  use_program_list;
 	gboolean	  completion_started;
 
-	char		 *icon_path;
+	GIcon		 *icon;
 	char             *desktop_path;
 	char		 *item_name;
 
@@ -185,8 +185,7 @@ panel_run_dialog_destroy (PanelRunDialog *dialog)
 
 	g_object_unref (dialog->program_list_box);
 
-	g_free (dialog->icon_path);
-	dialog->icon_path = NULL;
+	g_clear_object (&(dialog->icon));
 	g_free (dialog->desktop_path);
 	dialog->desktop_path = NULL;
 	g_free (dialog->item_name);
@@ -244,39 +243,28 @@ panel_run_dialog_set_default_icon (PanelRunDialog *dialog, gboolean set_drag)
 
 static void
 panel_run_dialog_set_icon (PanelRunDialog *dialog,
-			   const char     *icon_path,
+			   GIcon          *icon,
 			   gboolean        force)
 {
 	GdkPixbuf *pixbuf = NULL;
 
-	if (!force && icon_path && dialog->icon_path &&
-	    !strcmp (icon_path, dialog->icon_path))
+	if (!force && g_icon_equal(icon, dialog->icon))
 		return;
 
-	g_free (dialog->icon_path);
-	dialog->icon_path = NULL;
+	g_clear_object(&(dialog->icon));
 
-	if (icon_path) {
-		GdkScreen   *screen;
-		GtkSettings *settings;
+	if (icon) {
 		int          size;
 
-		screen = gtk_widget_get_screen (GTK_WIDGET (dialog->pixmap));
-		settings = gtk_settings_get_for_screen (screen);
-		gtk_icon_size_lookup_for_settings (settings,
-						   GTK_ICON_SIZE_DIALOG,
-						   &size, NULL);
+		gtk_icon_size_lookup (GTK_ICON_SIZE_DIALOG, &size, NULL);
 
-		pixbuf = panel_load_icon (gtk_icon_theme_get_default (),
-					  icon_path,
-					  size,
-					  size,
-					  size,
-					  NULL);
+		GtkIconTheme *icon_theme = gtk_icon_theme_get_default ();
+		GtkIconInfo *icon_info = gtk_icon_theme_lookup_by_gicon (icon_theme, icon, size, 0);
+		pixbuf = gtk_icon_info_load_icon (icon_info, NULL);
 	}
 
 	if (pixbuf) {
-		dialog->icon_path = g_strdup (icon_path);
+		dialog->icon = g_object_ref (icon);
 
 		/* Don't bother scaling the image if it's too small.
 		 * Scaled looks worse than a smaller image.
@@ -287,7 +275,11 @@ panel_run_dialog_set_icon (PanelRunDialog *dialog,
 		//(ditto for the drag icon?)
 		gtk_window_set_icon (GTK_WINDOW (dialog->run_dialog), pixbuf);
 
+#if GTK_CHECK_VERSION (3, 2, 0)
+		gtk_drag_source_set_icon_gicon (dialog->run_dialog, dialog->icon);
+#else
 		gtk_drag_source_set_icon_pixbuf (dialog->run_dialog, pixbuf);
+#endif
 		g_object_unref (pixbuf);
 	} else {
 		panel_run_dialog_set_default_icon (dialog, TRUE);
@@ -735,7 +727,7 @@ panel_run_dialog_find_command_idle (PanelRunDialog *dialog)
 
 	gtk_tree_path_free (path);
 
-/*	panel_run_dialog_set_icon (dialog, found_icon, FALSE); */
+	panel_run_dialog_set_icon (dialog, found_icon, FALSE);
 	//FIXME update dialog->program_label
 
 	g_clear_object (&found_icon);
@@ -892,7 +884,9 @@ panel_run_dialog_add_items_idle (PanelRunDialog *dialog)
 			gicon = g_file_icon_new (gfile);
 			g_object_unref (gfile);
 		} else {
-			gicon = g_themed_icon_new (icon);
+			gchar *icon_name = panel_xdg_icon_remove_extension (icon);
+			gicon = g_themed_icon_new (icon_name);
+			g_free (icon_name);
 		}
 
 		gtk_list_store_append (dialog->program_list_store, &iter);
@@ -1045,7 +1039,18 @@ program_list_selection_changed (GtkTreeSelection *selection,
 	g_free (temp);
 
 	temp = panel_key_file_get_locale_string (key_file, "Icon");
-	panel_run_dialog_set_icon (dialog, temp, FALSE);
+	GIcon *icon = NULL;
+	if (g_path_is_absolute(temp)) {
+		GFile *gfile = g_file_new_for_path (temp);
+		icon = g_file_icon_new (gfile);
+		g_object_unref (gfile);
+	} else {
+		gchar *icon_name = panel_xdg_icon_remove_extension (temp);
+		icon = g_themed_icon_new (icon_name);
+		g_free (icon_name);
+	}
+	panel_run_dialog_set_icon (dialog, icon, FALSE);
+	g_object_unref (icon);
 	g_free (temp);
 
 	temp = panel_key_file_get_locale_string (key_file, "Comment");
@@ -1788,9 +1793,11 @@ panel_run_dialog_create_desktop_file (PanelRunDialog *dialog)
 	panel_key_file_set_boolean (key_file, "Terminal",
 				    gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (dialog->terminal_checkbox)));
 
-	if (dialog->icon_path)
-		panel_key_file_set_locale_string (key_file, "Icon",
-						  dialog->icon_path);
+	if (dialog->icon) {
+		gchar *icon_path = g_icon_to_string (dialog->icon);
+		panel_key_file_set_locale_string (key_file, "Icon", icon_path);
+		g_free (icon_path);
+	}
 	else
 		panel_key_file_set_locale_string (key_file, "Icon",
 						  PANEL_ICON_LAUNCHER);
@@ -1839,12 +1846,12 @@ panel_run_dialog_style_set (GtkWidget      *widget,
 			    GtkStyle       *prev_style,
 			    PanelRunDialog *dialog)
 {
-  if (dialog->icon_path) {
-	  char *icon_path;
+  if (dialog->icon) {
+	  GIcon *icon;
 
-	  icon_path = g_strdup (dialog->icon_path);
-	  panel_run_dialog_set_icon (dialog, icon_path, TRUE);
-	  g_free (icon_path);
+	  icon = g_object_ref (dialog->icon);
+	  panel_run_dialog_set_icon (dialog, icon, TRUE);
+	  g_object_unref (icon);
   }
 }
 
@@ -1853,12 +1860,12 @@ panel_run_dialog_screen_changed (GtkWidget      *widget,
 				 GdkScreen      *prev_screen,
 				 PanelRunDialog *dialog)
 {
-  if (dialog->icon_path) {
-	  char *icon_path;
+  if (dialog->icon) {
+	  GIcon *icon;
 
-	  icon_path = g_strdup (dialog->icon_path);
-	  panel_run_dialog_set_icon (dialog, icon_path, TRUE);
-	  g_free (icon_path);
+	  icon = g_object_ref (dialog->icon);
+	  panel_run_dialog_set_icon (dialog, icon, TRUE);
+	  g_object_unref (icon);;
   }
 }
 
