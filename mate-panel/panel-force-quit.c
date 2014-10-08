@@ -304,11 +304,16 @@ panel_force_quit (GdkScreen *screen,
 	gdk_window_add_filter (root, (GdkFilterFunc) popup_filter, popup);
 
 	cross = gdk_cursor_new (GDK_CROSS);
-	status = gdk_pointer_grab (root, FALSE, GDK_BUTTON_PRESS_MASK,
-				   NULL, cross, time);
 #if GTK_CHECK_VERSION (3, 0, 0)
+	GdkDeviceManager *manager = gdk_display_get_device_manager (gdk_screen_get_display (screen));
+	GdkDevice *device = gdk_device_manager_get_client_pointer (manager);
+	status = gdk_device_grab (device, root, GDK_OWNERSHIP_NONE, FALSE, GDK_BUTTON_PRESS_MASK, cross, time);
+
 	g_object_unref (cross);
 #else
+	status = gdk_pointer_grab (root, FALSE, GDK_BUTTON_PRESS_MASK,
+				   NULL, cross, time);
+
 	gdk_cursor_unref (cross);
 #endif
 	if (status != GDK_GRAB_SUCCESS) {
