@@ -1443,22 +1443,7 @@ panel_load_menu_image_deferred (GtkWidget   *image_menu_item,
 	} else if (stock_id != NULL ) {
 		icon = g_themed_icon_new (stock_id);
 	} else if (image_filename != NULL) {
-		if (g_path_is_absolute(image_filename)) {
-			if (!g_file_test (image_filename, G_FILE_TEST_EXISTS)) {
-				gchar *icon_name = g_path_get_basename (image_filename);
-				icon = g_themed_icon_new (icon_name);
-				g_free (icon_name);
-	                } else {
-				GFile *gfile = g_file_new_for_path (image_filename);
-				icon = g_file_icon_new (gfile);
-				g_object_unref (gfile);
-			}
-		}
-		else {
-			gchar *icon_name = panel_xdg_icon_remove_extension (image_filename);
-			icon = g_themed_icon_new (icon_name);
-			g_free (icon_name);
-		}
+		icon = panel_gicon_from_icon_name (image_filename);
 	}
 
 	gtk_image_set_from_gicon (GTK_IMAGE(image), icon, icon_size);

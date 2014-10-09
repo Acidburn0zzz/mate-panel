@@ -879,16 +879,7 @@ panel_run_dialog_add_items_idle (PanelRunDialog *dialog)
 		MateMenuTreeEntry *entry = l->data;
 		GtkTreeIter    iter;
 		const gchar *icon = matemenu_tree_entry_get_icon (entry);
-		GIcon *gicon = NULL;
-		if (g_path_is_absolute(icon)) {
-			GFile *gfile = g_file_new_for_path (icon);
-			gicon = g_file_icon_new (gfile);
-			g_object_unref (gfile);
-		} else {
-			gchar *icon_name = panel_xdg_icon_remove_extension (icon);
-			gicon = g_themed_icon_new (icon_name);
-			g_free (icon_name);
-		}
+		GIcon *gicon = panel_gicon_from_icon_name (icon);
 
 		gtk_list_store_append (dialog->program_list_store, &iter);
 		gtk_list_store_set (dialog->program_list_store, &iter,
@@ -1040,16 +1031,7 @@ program_list_selection_changed (GtkTreeSelection *selection,
 	g_free (temp);
 
 	temp = panel_key_file_get_locale_string (key_file, "Icon");
-	GIcon *icon = NULL;
-	if (g_path_is_absolute(temp)) {
-		GFile *gfile = g_file_new_for_path (temp);
-		icon = g_file_icon_new (gfile);
-		g_object_unref (gfile);
-	} else {
-		gchar *icon_name = panel_xdg_icon_remove_extension (temp);
-		icon = g_themed_icon_new (icon_name);
-		g_free (icon_name);
-	}
+	GIcon *icon = panel_gicon_from_icon_name (temp);
 	panel_run_dialog_set_icon (dialog, icon, FALSE);
 	g_object_unref (icon);
 	g_free (temp);
