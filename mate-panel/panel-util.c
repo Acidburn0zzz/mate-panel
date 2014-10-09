@@ -265,9 +265,9 @@ panel_gicon_from_icon_name (const char *icon_name) {
 	GIcon *icon = NULL;
 	if (g_path_is_absolute(icon_name)) {
 		if (!g_file_test (icon_name, G_FILE_TEST_EXISTS)) {
-			gchar *icon_name = g_path_get_basename (icon_name);
-			icon = g_themed_icon_new (icon_name);
-			g_free (icon_name);
+			gchar *name = g_path_get_basename (icon_name);
+			icon = g_themed_icon_new (name);
+			g_free (name);
 		} else {
 			GFile *gfile = g_file_new_for_path (icon_name);
 			icon = g_file_icon_new (gfile);
