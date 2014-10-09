@@ -237,7 +237,7 @@ convert_no_alpha (guchar *dest_data,
   }
 }
 
-GdkPixbuf *
+static GdkPixbuf *
 gdk_pixbuf_get_from_surface  (cairo_surface_t *surface,
                               gint             src_x,
                               gint             src_y,

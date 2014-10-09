@@ -62,6 +62,7 @@
 #include "panel-lockdown.h"
 #include "panel-xutils.h"
 #include "panel-icon-names.h"
+#include "panel-xdg.h"
 
 typedef struct {
 	GtkWidget        *run_dialog;

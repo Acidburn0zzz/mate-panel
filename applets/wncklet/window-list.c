@@ -549,7 +549,7 @@ static void call_system_monitor(GtkAction* action, TasklistData* tasklist)
 				      system_monitors[i],
 				      NULL);
 #else
-			argv[0] = system_monitors[i];
+			argv[0] = (char *)system_monitors[i];
 			gdk_spawn_on_screen(gtk_widget_get_screen(tasklist->applet), NULL, argv, NULL,
 				      G_SPAWN_SEARCH_PATH,
 				      NULL, NULL, NULL, NULL);
