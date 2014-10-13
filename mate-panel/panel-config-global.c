@@ -32,6 +32,7 @@
 #include <gio/gio.h>
 
 #include "panel-globals.h"
+#include "panel-schemas.h"
 
 typedef struct {
 	guint               tooltips_enabled : 1;
@@ -126,7 +127,7 @@ panel_global_config_load (void)
 	gchar **keys;
 	gint i;
 
-	panel_global_settings = g_settings_new ("org.mate.panel");
+	panel_global_settings = g_settings_new (PANEL_SCHEMA);
 
 	keys = g_settings_list_keys (panel_global_settings);
 
