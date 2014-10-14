@@ -1762,6 +1762,11 @@ static void
 mate_panel_applet_handle_background (MatePanelApplet *applet)
 {
 	MatePanelAppletBackgroundType  type;
+
+	if (!gtk_widget_get_realized (GTK_WIDGET(applet))) {
+		return;
+	}
+
 #if GTK_CHECK_VERSION (3, 0, 0)
 	GdkRGBA                    color;
 	cairo_pattern_t           *pattern;
