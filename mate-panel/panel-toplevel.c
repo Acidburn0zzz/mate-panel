@@ -3009,16 +3009,6 @@ panel_toplevel_check_resize (GtkContainer *container)
 }
 
 static void
-panel_toplevel_add (GtkContainer *container,
-               GtkWidget    *widget)
-{
-	g_print("%s:%d\n", __FUNCTION__, __LINE__);
-	if (GTK_CONTAINER_CLASS(panel_toplevel_parent_class)->add) {
-		GTK_CONTAINER_CLASS(panel_toplevel_parent_class)->add(container, widget);
-	}
-}
-
-static void
 panel_toplevel_size_request (GtkWidget      *widget,
 			     GtkRequisition *requisition)
 {
@@ -4292,7 +4282,6 @@ panel_toplevel_class_init (PanelToplevelClass *klass)
 	widget_class->style_set            = panel_toplevel_style_set;
 
 	container_class->check_resize = panel_toplevel_check_resize;
-	container_class->add = panel_toplevel_add;
 
 	klass->hiding           = NULL;
 	klass->unhiding         = NULL;
