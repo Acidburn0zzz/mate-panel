@@ -36,7 +36,7 @@ typedef gboolean (* CallbackEnabledFunc) (void);
 
 typedef struct {
 	char                *name;
-	char                *stock_item;
+	GIcon               *gicon;
 	char                *text;
 
 	CallbackEnabledFunc  is_enabled_func;

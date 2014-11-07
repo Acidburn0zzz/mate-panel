@@ -328,7 +328,7 @@ mate_panel_applet_get_callback (GList      *user_menu,
 void
 mate_panel_applet_add_callback (AppletInfo          *info,
 			   const char          *callback_name,
-			   const char          *stock_item,
+			   const char          *icon_name,
 			   const char          *menuitem_text,
 			   CallbackEnabledFunc  is_enabled_func)
 {
@@ -340,7 +340,7 @@ mate_panel_applet_add_callback (AppletInfo          *info,
 
 	menu                  = g_new0 (AppletUserMenu, 1);
 	menu->name            = g_strdup (callback_name);
-	menu->stock_item      = g_strdup (stock_item);
+	menu->gicon           = panel_gicon_from_icon_name (icon_name);
 	menu->text            = g_strdup (menuitem_text);
 	menu->is_enabled_func = is_enabled_func;
 	menu->sensitive       = TRUE;
@@ -361,8 +361,8 @@ setup_an_item (AppletUserMenu *menu,
 	GtkWidget *image = NULL;
 
 	menu->menuitem = gtk_image_menu_item_new_with_mnemonic (menu->text);
-	if (menu->stock_item && menu->stock_item [0]) {
-		image = gtk_image_new_from_stock (menu->stock_item,
+	if (menu->gicon) {
+		image = gtk_image_new_from_gicon (menu->gicon,
 						  GTK_ICON_SIZE_MENU);
 		gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu->menuitem),
 					       image);
@@ -438,7 +438,7 @@ add_to_submenus (AppletInfo *info,
 	if (s_menu == NULL) {
 		s_menu = g_new0 (AppletUserMenu,1);
 		s_menu->name = g_strdup (t);
-		s_menu->stock_item = NULL;
+		s_menu->gicon = NULL;
 		s_menu->text = g_strdup (_("???"));
 		s_menu->sensitive = TRUE;
 		s_menu->info = info;
@@ -796,7 +796,7 @@ mate_panel_applet_destroy (GtkWidget  *widget,
 		AppletUserMenu *umenu = l->data;
 
 		g_free (umenu->name);
-		g_free (umenu->stock_item);
+		g_clear_object (&(umenu->gicon));
 		g_free (umenu->text);
 
 		g_free (umenu);
