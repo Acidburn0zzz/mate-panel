@@ -538,8 +538,11 @@ setup_button (Launcher *launcher)
 	char *str;
 	char *icon;
 	char *unescaped_str;
+
+#if GLIB_CHECK_VERSION (2, 38, 0)
 	gchar **actions;
 	gsize actions_length = 0;
+#endif
 
 	g_return_if_fail (launcher != NULL);
 
@@ -551,6 +554,7 @@ setup_button (Launcher *launcher)
 				   _("_Launch"),
 				   NULL);
 
+#if GLIB_CHECK_VERSION (2, 38, 0)
 	actions = g_key_file_get_string_list (launcher->key_file, G_KEY_FILE_DESKTOP_GROUP,
 				    "Actions", &actions_length, NULL);
 
@@ -574,6 +578,7 @@ setup_button (Launcher *launcher)
 		}
 		g_strfreev (actions);
 	}
+#endif
 
 	mate_panel_applet_add_callback (launcher->info,
 				   "properties",

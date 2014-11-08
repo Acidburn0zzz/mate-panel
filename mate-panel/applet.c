@@ -240,10 +240,12 @@ applet_callback_callback (GtkWidget      *widget,
 			launcher_launch (menu->info->data, widget, NULL);
 		else if (!strcmp (menu->name, "properties"))
 			launcher_properties (menu->info->data);
+#if GLIB_CHECK_VERSION (2, 38, 0)
 		else if (g_str_has_prefix (menu->name, "launch-action_")) {
 			const gchar *action = menu->name + (sizeof("launch-action_") - 1);
 			launcher_launch (menu->info->data, widget, action);
 		}
+#endif
 		break;
 	case PANEL_OBJECT_DRAWER:
 		if (strcmp (menu->name, "add") == 0) {

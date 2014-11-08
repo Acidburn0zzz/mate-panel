@@ -120,16 +120,20 @@ panel_app_info_launch_uris (GAppInfo   *appinfo,
 
 	local_error = NULL;
 
+#if GLIB_CHECK_VERSION (2, 38, 0)
 	if (action == NULL) {
+#endif
 		retval = g_desktop_app_info_launch_uris_as_manager ((GDesktopAppInfo*)appinfo, uris,
 							   (GAppLaunchContext *) context,
 							   G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
 							   NULL, NULL, gather_pid_callback, appinfo,
 							   &local_error);
+#if GLIB_CHECK_VERSION (2, 38, 0)
 	} else {
 		g_desktop_app_info_launch_action ((GDesktopAppInfo*)appinfo, action, context);
 		retval = TRUE;
 	}
+#endif
 
 	g_object_unref (context);
 
