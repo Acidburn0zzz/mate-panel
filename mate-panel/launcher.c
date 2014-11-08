@@ -129,6 +129,13 @@ launch_url (Launcher *launcher)
 	g_free (url);
 }
 
+static void
+launcher_launch_clicked (Launcher  *launcher,
+		 GtkWidget *widget)
+{
+	launcher_launch (launcher, widget, NULL);
+}
+
 void
 launcher_launch (Launcher  *launcher,
 		 GtkWidget *widget,
@@ -513,7 +520,7 @@ create_launcher (const char *location)
 	g_signal_connect (launcher->button, "drag_leave",
 			   G_CALLBACK (drag_leave_cb), launcher);
 	g_signal_connect_swapped (launcher->button, "clicked",
-				  G_CALLBACK (launcher_launch), launcher);
+				  G_CALLBACK (launcher_launch_clicked), launcher);
 
 	launcher->destroy_handler =
 			g_signal_connect (launcher->button, "destroy",
