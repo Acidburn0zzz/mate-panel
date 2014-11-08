@@ -554,10 +554,6 @@ setup_button (Launcher *launcher)
 	actions = g_key_file_get_string_list (launcher->key_file, G_KEY_FILE_DESKTOP_GROUP,
 				    "Actions", &actions_length, NULL);
 
-	if (!actions) {
-		actions = g_key_file_get_string_list (launcher->key_file, G_KEY_FILE_DESKTOP_GROUP, "X-Ayatana-Desktop-Shortcuts", &actions_length, NULL);
-	}
-
 	if (actions) {
 		gsize i = 0;
 		for(i=0; i<actions_length; i++) {
@@ -566,9 +562,11 @@ setup_button (Launcher *launcher)
 			gchar *callback = g_strdup_printf("launch-action_%s", action);
 			gchar *action_name = g_key_file_get_locale_string (launcher->key_file, group, "Name", NULL, NULL);
 
-			if (action_name) {
-				mate_panel_applet_add_callback (launcher->info, callback, NULL, action_name, NULL);
-			}
+			mate_panel_applet_add_callback (launcher->info,
+						   callback,
+						   NULL,
+						   action_name,
+						   NULL);
 
 			g_free (callback);
 			g_free (action_name);
