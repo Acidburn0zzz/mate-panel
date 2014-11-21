@@ -26,6 +26,7 @@
 #define PANEL_LAUNCH_H
 
 #include <gio/gio.h>
+#include <gio/gdesktopappinfo.h>
 #include <gdk/gdk.h>
 
 #ifdef __cplusplus
@@ -45,7 +46,7 @@ gboolean panel_app_info_launch_uri (GAppInfo     *appinfo,
 				    guint32       timestamp,
 				    GError      **error);
 
-gboolean panel_launch_key_file (GKeyFile   *keyfile,
+gboolean panel_launch_key_file (GDesktopAppInfo *appinfo,
 				GList      *uri_list,
 				GdkScreen  *screen,
 				const gchar *action,

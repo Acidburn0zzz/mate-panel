@@ -46,7 +46,6 @@ struct _PanelDItemEditorPrivate
 	   everything in the display so we load a file, or get a ditem,
 	   sync the display and ref the ditem */
 	GKeyFile *key_file;
-	gboolean  free_key_file;
 	/* the revert ditem will only contain relevant keys */
 	GKeyFile *revert_key_file;
 
@@ -160,7 +159,6 @@ enum {
 
 enum {
 	PROP_0,
-	PROP_KEYFILE,
 	PROP_URI,
 	PROP_TYPEDIRECTORY
 };
@@ -189,9 +187,6 @@ static void panel_ditem_editor_revert (PanelDItemEditor *dialog);
 static void panel_ditem_editor_key_file_loaded (PanelDItemEditor  *dialog);
 static gboolean panel_ditem_editor_load_uri (PanelDItemEditor  *dialog,
 					     GError           **error);
-
-static void panel_ditem_editor_set_key_file (PanelDItemEditor *dialog,
-					     GKeyFile         *key_file);
 
 static gboolean panel_ditem_editor_get_type_directory (PanelDItemEditor *dialog);
 static void panel_ditem_editor_set_type_directory (PanelDItemEditor *dialog,
@@ -234,21 +229,11 @@ panel_ditem_editor_constructor (GType                  type,
 
 	dialog = PANEL_DITEM_EDITOR (obj);
 
-	if (dialog->priv->key_file) {
-		panel_ditem_editor_key_file_loaded (dialog);
-		dialog->priv->new_file = FALSE;
-		dialog->priv->free_key_file = FALSE;
-		loaded = TRUE;
-	} else {
-		dialog->priv->key_file = panel_key_file_new_desktop ();
-		if (dialog->priv->type_directory)
-			panel_key_file_set_string (dialog->priv->key_file,
-						   "Type", "Directory");
-		dialog->priv->free_key_file = TRUE;
-		loaded = FALSE;
-	}
-
-	if (!loaded && dialog->priv->uri) {
+	dialog->priv->key_file = panel_key_file_new_desktop ();
+	if (dialog->priv->type_directory)
+		panel_key_file_set_string (dialog->priv->key_file,
+					   "Type", "Directory");
+	if (dialog->priv->uri) {
 		file = g_file_new_for_uri (dialog->priv->uri);
 		if (g_file_query_exists (file, NULL)) {
 			//FIXME what if there's an error?
@@ -259,7 +244,7 @@ panel_ditem_editor_constructor (GType                  type,
 		}
 		g_object_unref (file);
 	} else {
-		dialog->priv->new_file = !loaded;
+		dialog->priv->new_file = TRUE;
 	}
 
 	dialog->priv->dirty = FALSE;
@@ -291,9 +276,6 @@ panel_ditem_editor_get_property (GObject    *object,
 	dialog = PANEL_DITEM_EDITOR (object);
 
 	switch (prop_id) {
-	case PROP_KEYFILE:
-		g_value_set_pointer (value, panel_ditem_editor_get_key_file (dialog));
-		break;
 	case PROP_URI:
 		g_value_set_string (value, panel_ditem_editor_get_uri (dialog));
 		break;
@@ -319,10 +301,6 @@ panel_ditem_editor_set_property (GObject       *object,
 	dialog = PANEL_DITEM_EDITOR (object);
 
 	switch (prop_id) {
-	case PROP_KEYFILE:
-		panel_ditem_editor_set_key_file (dialog,
-						 g_value_get_pointer (value));
-		break;
 	case PROP_URI:
 		panel_ditem_editor_set_uri (dialog,
 					    g_value_get_string (value));
@@ -358,7 +336,7 @@ panel_ditem_editor_destroy (GtkObject *object)
 
 	/* remember, destroy can be run multiple times! */
 
-	if (dialog->priv->free_key_file && dialog->priv->key_file != NULL)
+	if (dialog->priv->key_file != NULL)
 		g_key_file_free (dialog->priv->key_file);
 	dialog->priv->key_file = NULL;
 
@@ -479,14 +457,6 @@ panel_ditem_editor_class_init (PanelDItemEditorClass *class)
 			      panel_marshal_VOID__STRING_STRING,
 			      G_TYPE_NONE, 2,
 			      G_TYPE_STRING, G_TYPE_STRING);
-
-	g_object_class_install_property (
-		gobject_class,
-		PROP_KEYFILE,
-		g_param_spec_pointer ("keyfile",
-				      "Key File",
-				      "A key file containing the data from the .desktop file",
-				      G_PARAM_READWRITE | G_PARAM_CONSTRUCT_ONLY));
 
 	g_object_class_install_property (
 		gobject_class,
@@ -918,8 +888,7 @@ panel_ditem_editor_command_changed (PanelDItemEditor *dialog)
 					   exec_or_uri);
 
 		icon_theme = gtk_icon_theme_get_for_screen (gtk_widget_get_screen (GTK_WIDGET (dialog)));
-		icon = guess_icon_from_exec (icon_theme,
-					     dialog->priv->key_file);
+		icon = guess_icon_from_exec (icon_theme, exec_or_uri);
 		if (icon) {
 			char *current;
 
@@ -1169,7 +1138,6 @@ panel_ditem_editor_init (PanelDItemEditor *dialog)
 	dialog->priv = priv;
 
 	priv->key_file = NULL;
-	priv->free_key_file = FALSE;
 	priv->revert_key_file = NULL;
 	priv->reverting = FALSE;
 	priv->dirty = FALSE;
@@ -1673,7 +1641,7 @@ panel_ditem_editor_load_uri (PanelDItemEditor  *dialog,
 		return FALSE;
 	}
 
-	if (dialog->priv->free_key_file && dialog->priv->key_file)
+	if (dialog->priv->key_file)
 		g_key_file_free (dialog->priv->key_file);
 	dialog->priv->key_file = key_file;
 
@@ -1684,7 +1652,6 @@ panel_ditem_editor_load_uri (PanelDItemEditor  *dialog,
 
 static GtkWidget *
 panel_ditem_editor_new_full (GtkWindow   *parent,
-			     GKeyFile    *key_file,
 			     const char  *uri,
 			     const char  *title,
 			     gboolean     type_directory)
@@ -1693,7 +1660,6 @@ panel_ditem_editor_new_full (GtkWindow   *parent,
 
 	dialog = g_object_new (PANEL_TYPE_DITEM_EDITOR,
 			       "title", title,
-			       "keyfile", key_file,
 			       "uri", uri,
 			       "type-directory", type_directory,
 			       NULL);
@@ -1706,38 +1672,20 @@ panel_ditem_editor_new_full (GtkWindow   *parent,
 
 GtkWidget *
 panel_ditem_editor_new (GtkWindow   *parent,
-			GKeyFile    *key_file,
 			const char  *uri,
 			const char  *title)
 {
-	return panel_ditem_editor_new_full (parent, key_file, uri,
+	return panel_ditem_editor_new_full (parent, uri,
 					    title, FALSE);
 }
 
 GtkWidget *
 panel_ditem_editor_new_directory (GtkWindow   *parent,
-				  GKeyFile    *key_file,
 				  const char  *uri,
 				  const char  *title)
 {
-	return panel_ditem_editor_new_full (parent, key_file, uri,
+	return panel_ditem_editor_new_full (parent, uri,
 					    title, TRUE);
-}
-
-static void
-panel_ditem_editor_set_key_file (PanelDItemEditor *dialog,
-				 GKeyFile         *key_file)
-{
-	g_return_if_fail (PANEL_IS_DITEM_EDITOR (dialog));
-
-	if (dialog->priv->key_file == key_file)
-		return;
-
-	if (dialog->priv->free_key_file && dialog->priv->key_file)
-		g_key_file_free (dialog->priv->key_file);
-	dialog->priv->key_file = key_file;
-
-	g_object_notify (G_OBJECT (dialog), "keyfile");
 }
 
 void

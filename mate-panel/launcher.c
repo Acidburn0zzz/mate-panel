@@ -105,10 +105,10 @@ launch_url (Launcher *launcher)
 	GdkScreen *screen;
 
 	g_return_if_fail (launcher != NULL);
-	g_return_if_fail (launcher->key_file != NULL);
+	g_return_if_fail (launcher->app_info != NULL);
 
 	/* FIXME panel_ditem_launch() should be enough for this! */
-	url = panel_key_file_get_string (launcher->key_file, "URL");
+	url = g_desktop_app_info_get_string (launcher->app_info, G_KEY_FILE_DESKTOP_KEY_URL);
 
 	screen = launcher_get_screen (launcher);
 
@@ -144,7 +144,7 @@ launcher_launch (Launcher  *launcher,
 	char *type = NULL;
 
 	g_return_if_fail (launcher != NULL);
-	g_return_if_fail (launcher->key_file != NULL);
+	g_return_if_fail (launcher->app_info != NULL);
 
 	if (panel_global_config_get_enable_animations ())
 		xstuff_zoom_animate (widget,
@@ -152,7 +152,7 @@ launcher_launch (Launcher  *launcher,
 				     button_widget_get_orientation (BUTTON_WIDGET (widget)),
 				     NULL);
 	if (action == NULL) {
-		type = panel_key_file_get_string (launcher->key_file, "Type");
+		type = g_desktop_app_info_get_string (launcher->app_info, G_KEY_FILE_DESKTOP_KEY_TYPE);
 	}
 
 	if (type && !strcmp (type, "Link"))
@@ -160,7 +160,7 @@ launcher_launch (Launcher  *launcher,
 	else {
 		GError *error = NULL;
 
-		panel_launch_key_file (launcher->key_file, NULL,
+		panel_launch_key_file (launcher->app_info, NULL,
 				       launcher_get_screen (launcher), action, &error);
 		if (error) {
 			GtkWidget *error_dialog;
@@ -224,7 +224,7 @@ drag_data_received_cb (GtkWidget        *widget,
 		file_list = g_list_prepend (file_list, uris[i]);
 	file_list = g_list_reverse (file_list);
 
-	panel_launch_key_file (launcher->key_file, file_list,
+	panel_launch_key_file (launcher->app_info, file_list,
 			       launcher_get_screen (launcher), NULL, &error);
 
 	g_list_free (file_list);
@@ -270,13 +270,7 @@ free_launcher (gpointer data)
 {
 	Launcher *launcher = data;
 
-	if (launcher->key_file)
-		g_key_file_free (launcher->key_file);
-	launcher->key_file = NULL;
-
-	if (launcher->location != NULL)
-		g_free (launcher->location);
-	launcher->location = NULL;
+	g_clear_object(&launcher->app_info);
 
 	g_free (launcher);
 }
@@ -284,15 +278,16 @@ free_launcher (gpointer data)
 void
 panel_launcher_delete (Launcher *launcher)
 {
-	if (!launcher->location)
+	const gchar *location = g_desktop_app_info_get_filename (launcher->app_info);
+	if (!location)
 		return;
 
 	/* do not remove the file if it's not in the user's launchers path */
-	if (panel_launcher_is_in_personal_path (launcher->location)) {
+	if (panel_launcher_is_in_personal_path (location)) {
 		GError *error;
 		GFile  *file;
 
-		file = panel_launcher_get_gfile (launcher->location);
+		file = panel_launcher_get_gfile (location);
 
 		error = NULL;
 		if (!g_file_delete (file, NULL, &error)) {
@@ -399,11 +394,11 @@ drag_data_get_cb (GtkWidget        *widget,
 		  guint             time,
 		  Launcher         *launcher)
 {
-	char *location;
-	
+	const char *location;
+
 	g_return_if_fail (launcher != NULL);
 
-	location = launcher->location;
+	location = g_desktop_app_info_get_filename (launcher->app_info);
 
 	if (info == TARGET_URI_LIST) {
 		char *uri[2];
@@ -425,19 +420,13 @@ drag_data_get_cb (GtkWidget        *widget,
 static Launcher *
 create_launcher (const char *location)
 {
-	GKeyFile *key_file;
-	gboolean  loaded = FALSE;
+	GDesktopAppInfo *app_info = NULL;
 	Launcher *launcher;
-	GError   *error = NULL;
-	char     *new_location;
 
 	if (!location) {
 		g_printerr (_("No URI provided for panel launcher desktop file\n"));
 		return NULL;
 	}
-
-	new_location = NULL;
-	key_file = g_key_file_new ();
 
 	if (!strchr (location, G_DIR_SEPARATOR)) {
 		/* try to first load a file in our config directory, and if it
@@ -449,49 +438,26 @@ create_launcher (const char *location)
 		if (!g_file_test (path, G_FILE_TEST_EXISTS)) {
 			g_free (path);
 			path = panel_g_lookup_in_applications_dirs (location);
-			/* it's important to keep the full path if the desktop
-			 * file comes from a data dir: when the user will edit
-			 * it, we'll want to save it in PANEL_LAUNCHERS_PATH
-			 * with a random name (and not evolution.desktop, eg)
-			 * and having only a basename as location will make
-			 * this impossible */
-			if (path)
-				new_location = g_strdup (path);
 		}
 
 		if (path) {
-			loaded = g_key_file_load_from_file (key_file, path,
-							    G_KEY_FILE_KEEP_COMMENTS|G_KEY_FILE_KEEP_TRANSLATIONS,
-							    &error);
+			app_info = g_desktop_app_info_new_from_filename (path);
 			g_free (path);
 		}
 	} else
-		loaded = panel_key_file_load_from_uri (key_file, location,
-						       G_KEY_FILE_KEEP_COMMENTS|G_KEY_FILE_KEEP_TRANSLATIONS,
-						       &error);
+		app_info = g_desktop_app_info_new_from_filename (location);
 
-	if (!loaded) {
-		g_printerr (_("Unable to open desktop file %s for panel launcher%s%s\n"),
-			    location,
-			    error ? ": " : "",
-			    error ? error->message : "");
-		if (error)
-			g_error_free (error);
-
-		g_key_file_free (key_file);
+	if (!app_info) {
+		g_printerr (_("Unable to open desktop file %s for panel launcher\n"), location);
 
 		return NULL; /*button is null*/
 	}
-
-	if (!new_location)
-		new_location = g_strdup (location);
 
 	launcher = g_new0 (Launcher, 1);
 
 	launcher->info = NULL;
 	launcher->button = NULL;
-	launcher->location = new_location;
-	launcher->key_file = key_file;
+	launcher->app_info = app_info;
 	launcher->prop_dialog = NULL;
 	launcher->destroy_handler = 0;
 
@@ -540,8 +506,7 @@ setup_button (Launcher *launcher)
 	char *unescaped_str;
 
 #if GLIB_CHECK_VERSION (2, 38, 0)
-	gchar **actions;
-	gsize actions_length = 0;
+	const gchar * const *actions;
 #endif
 
 	g_return_if_fail (launcher != NULL);
@@ -550,46 +515,39 @@ setup_button (Launcher *launcher)
 
 	mate_panel_applet_add_callback (launcher->info,
 				   "launch",
-				   GTK_STOCK_EXECUTE,
+				   "system-run",
 				   _("_Launch"),
 				   NULL);
 
 #if GLIB_CHECK_VERSION (2, 38, 0)
-	actions = g_key_file_get_string_list (launcher->key_file, G_KEY_FILE_DESKTOP_GROUP,
-				    "Actions", &actions_length, NULL);
+	actions = g_desktop_app_info_list_actions (launcher->app_info);
 
-	if (actions) {
-		gsize i = 0;
-		for(i=0; i<actions_length; i++) {
-			gchar *action = actions[i];
-			gchar *group = g_strdup_printf("Desktop Action %s", action);
-			gchar *callback = g_strdup_printf("launch-action_%s", action);
-			gchar *action_name = g_key_file_get_locale_string (launcher->key_file, group, "Name", NULL, NULL);
+	const gchar * const * ptr = actions;
+	for(; *ptr != NULL; ptr++) {
+		const gchar *action = *ptr;
+		gchar *callback = g_strdup_printf("launch-action_%s", action);
+		gchar *action_name = g_desktop_app_info_get_action_name (launcher->app_info, action);
 
-			mate_panel_applet_add_callback (launcher->info,
-						   callback,
-						   NULL,
-						   action_name,
-						   NULL);
+		mate_panel_applet_add_callback (launcher->info,
+					   callback,
+					   NULL,
+					   action_name,
+					   NULL);
 
-			g_free (callback);
-			g_free (action_name);
-			g_free (group);
-		}
-		g_strfreev (actions);
+		g_free (callback);
+		g_free (action_name);
 	}
 #endif
 
 	mate_panel_applet_add_callback (launcher->info,
 				   "properties",
-				   GTK_STOCK_PROPERTIES,
+				   "document-properties",
 				   _("_Properties"),
 				   launcher_properties_enabled);
 
 
-	name = panel_key_file_get_locale_string (launcher->key_file, "Name");
-	comment = panel_key_file_get_locale_string (launcher->key_file,
-						    "Comment");
+	name = g_desktop_app_info_get_string (launcher->app_info, G_KEY_FILE_DESKTOP_KEY_NAME);
+	comment = g_desktop_app_info_get_string (launcher->app_info, G_KEY_FILE_DESKTOP_KEY_COMMENT);
 
 	/* Setup tooltip */
 	if (!PANEL_GLIB_STR_EMPTY (name) && !PANEL_GLIB_STR_EMPTY (comment))
@@ -620,15 +578,18 @@ setup_button (Launcher *launcher)
 	g_free (str);
 
 	/* Setup icon */
-	icon = panel_key_file_get_locale_string (launcher->key_file, "Icon");
+	icon = g_desktop_app_info_get_string (launcher->app_info, G_KEY_FILE_DESKTOP_KEY_ICON);
 	if (icon && icon[0] == '\0') {
 		g_free (icon);
 		icon = NULL;
 	}
 
-	if (!icon)
+	if (!icon) {
+		gchar *exec = g_desktop_app_info_get_string (launcher->app_info, G_KEY_FILE_DESKTOP_KEY_EXEC);
 		icon = guess_icon_from_exec (button_widget_get_icon_theme (BUTTON_WIDGET (launcher->button)),
-					     launcher->key_file);
+					     exec);
+		g_free (exec);
+	}
 	if (!icon)
 		icon = g_strdup (PANEL_ICON_LAUNCHER);
 
@@ -681,16 +642,18 @@ launcher_command_changed (PanelDItemEditor *dialog,
 {
 	char     *exec;
 	char     *old_exec;
+	GKeyFile *key_file;
 	GKeyFile *revert_key_file;
 
+	key_file = panel_ditem_editor_get_key_file (dialog);
 	revert_key_file = panel_ditem_editor_get_revert_key_file (dialog);
 
 	if (revert_key_file) {
-		exec = panel_key_file_get_string (launcher->key_file, "Exec");
+		exec = panel_key_file_get_string (key_file, "Exec");
 		old_exec = panel_key_file_get_string (revert_key_file, "Exec");
 
 		if (!old_exec || !exec || strcmp (old_exec, exec))
-			panel_key_file_remove_key (launcher->key_file,
+			panel_key_file_remove_key (key_file,
 						   "StartupNotify");
 
 		g_free (exec);
@@ -721,9 +684,10 @@ launcher_save_uri (PanelDItemEditor *dialog,
 
 	launcher = (Launcher *) data;
 
-	if (launcher)
-		new_uri = panel_launcher_find_writable_uri (launcher->location,
-							    exec_or_uri);
+	if (launcher) {
+		const gchar *location = g_desktop_app_info_get_filename (launcher->app_info);
+		new_uri = panel_launcher_find_writable_uri (location, exec_or_uri);
+	}
 	else
 		new_uri = panel_launcher_find_writable_uri (NULL, exec_or_uri);
 
@@ -748,13 +712,14 @@ launcher_saved (GtkWidget *dialog,
 	if (panel_launcher_get_filename (uri) != NULL)
 		uri = panel_launcher_get_filename (uri);
 
-	if (uri && launcher->location && strcmp (uri, launcher->location)) {
+	const gchar *location = g_desktop_app_info_get_filename (launcher->app_info);
+
+	if (uri && location && strcmp (uri, location)) {
 
 		g_settings_set_string (launcher->info->settings, PANEL_OBJECT_LAUNCHER_LOCATION_KEY, uri);
 
-		if (launcher->location)
-			g_free (launcher->location);
-		launcher->location = g_strdup (uri);
+		g_object_unref (launcher->app_info);
+		launcher->app_info = g_desktop_app_info_new_from_filename (uri);
 	}
 }
 
@@ -779,9 +744,10 @@ launcher_properties (Launcher  *launcher)
 		return;
 	}
 
+	const gchar *location = g_desktop_app_info_get_filename (launcher->app_info);
+
 	launcher->prop_dialog = panel_ditem_editor_new (NULL,
-							launcher->key_file,
-							launcher->location,
+							location,
 							_("Launcher Properties"));
 
 	panel_widget_register_open_dialog (PANEL_WIDGET 
@@ -931,7 +897,7 @@ ask_about_launcher (const char  *file,
 	if (panel_lockdown_get_disable_command_line ())
 		return;
 
-	dialog = panel_ditem_editor_new (NULL, NULL, NULL,
+	dialog = panel_ditem_editor_new (NULL, NULL,
 					 _("Create Launcher"));
 	panel_widget_register_open_dialog (panel, dialog);
 
@@ -1109,11 +1075,12 @@ find_launcher (const char *path)
 
 		launcher = info->data;
 
-		if (launcher->key_file == NULL)
+		if (launcher->app_info == NULL)
 			continue;
 
-		if (launcher->location != NULL &&
-		    strcmp (launcher->location, path) == 0)
+		const gchar *location = g_desktop_app_info_get_filename (launcher->app_info);
+		if (location != NULL &&
+		    strcmp (location, path) == 0)
 			return launcher;
 	}
 
