@@ -233,7 +233,7 @@ panel_ditem_editor_constructor (GType                  type,
 		panel_key_file_set_string (dialog->priv->key_file,
 					   "Type", "Directory");
 	if (dialog->priv->uri) {
-		file = g_file_new_for_uri (dialog->priv->uri);
+		file = g_file_new_for_path (dialog->priv->uri);
 		if (g_file_query_exists (file, NULL)) {
 			//FIXME what if there's an error?
 			panel_ditem_editor_load_uri (dialog, NULL);
