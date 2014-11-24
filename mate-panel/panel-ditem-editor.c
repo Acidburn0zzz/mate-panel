@@ -40,6 +40,10 @@
 #include "panel-util.h"
 #include "panel-marshal.h"
 
+#if GTK_CHECK_VERSION (3, 0, 0)
+#define gtk_hbox_new(X, Y) gtk_box_new(GTK_ORIENTATION_HORIZONTAL, Y)
+#endif
+
 struct _PanelDItemEditorPrivate
 {
 	/* we keep a ditem around, since we can never have absolutely
@@ -220,7 +224,6 @@ panel_ditem_editor_constructor (GType                  type,
 	GObject          *obj;
 	PanelDItemEditor *dialog;
 	GFile            *file;
-	gboolean          loaded;
 	char             *desktop_type;
 
 	obj = G_OBJECT_CLASS (panel_ditem_editor_parent_class)->constructor (type,

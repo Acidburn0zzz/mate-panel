@@ -132,7 +132,13 @@ static void button_size_allocated(GtkWidget* button, GtkAllocation* allocation, 
 
 static void update_icon(ShowDesktopData* sdd)
 {
+#if GTK_CHECK_VERSION (3, 0, 0)
+	GtkStyleContext *context;
+	GtkStateFlags    state;
+	GtkBorder        padding;
+#else
 	GtkStyle* style;
+#endif
 	int width, height;
 	GdkPixbuf* icon;
 	GdkPixbuf* scaled;
@@ -145,6 +151,26 @@ static void update_icon(ShowDesktopData* sdd)
 	if (!sdd->icon_theme)
 		return;
 
+#if GTK_CHECK_VERSION (3, 0, 0)
+	state = gtk_widget_get_state_flags (sdd->button);
+	context = gtk_widget_get_style_context (sdd->button);
+	gtk_style_context_get_padding (context, state, &padding);
+	gtk_style_context_get_style (context,
+			             "focus-line-width", &focus_width,
+			             "focus-padding", &focus_pad,
+			             NULL);
+
+	switch (sdd->orient) {
+	case GTK_ORIENTATION_HORIZONTAL:
+		thickness = padding.top + padding.bottom;
+		break;
+	case GTK_ORIENTATION_VERTICAL:
+		thickness = padding.left + padding.right;
+		break;
+	}
+
+	icon_size = sdd->size - 2 * (focus_width + focus_pad) - thickness;
+#else
 	gtk_widget_style_get (sdd->button, "focus-line-width", &focus_width, "focus-padding", &focus_pad, NULL);
 
 	style = gtk_widget_get_style(sdd->button);
@@ -159,7 +185,8 @@ static void update_icon(ShowDesktopData* sdd)
 			break;
 	}
 
-	icon_size = sdd->size - 2 * (focus_width + focus_pad + thickness);
+	icon_size = sdd->size - 2 * (focus_width + focus_pad) - thickness;
+#endif
 
 	if (icon_size < 22)
 		icon_size = 16;
@@ -378,7 +405,7 @@ gboolean show_desktop_applet_fill(MatePanelApplet* applet)
 	gchar* ui_path;
 	AtkObject* atk_obj;
 #if GTK_CHECK_VERSION (3, 0, 0)
-        GtkCssProvider  *provider;
+	GtkCssProvider *provider;
 #endif
 
 	mate_panel_applet_set_flags(applet, MATE_PANEL_APPLET_EXPAND_MINOR);
@@ -410,17 +437,17 @@ gboolean show_desktop_applet_fill(MatePanelApplet* applet)
 
 	gtk_widget_set_name (sdd->button, "showdesktop-button");
 #if GTK_CHECK_VERSION (3, 0, 0)
-        provider = gtk_css_provider_new ();
-        gtk_css_provider_load_from_data (provider,
-                                         "#showdesktop-button {\n"
-                                         " -GtkWidget-focus-line-width: 0px;\n"
-                                         " -GtkWidget-focus-padding: 0px;\n"
-					 "}",
-                                         -1, NULL);
-        gtk_style_context_add_provider (gtk_widget_get_style_context (sdd->button),
-                                        GTK_STYLE_PROVIDER (provider),
-                                        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-        g_object_unref (provider);
+	provider = gtk_css_provider_new ();
+	gtk_css_provider_load_from_data (provider,
+					 "#showdesktop-button {\n"
+					 " -GtkWidget-focus-line-width: 0px;\n"
+					 " -GtkWidget-focus-padding: 0px; }",
+					 -1, NULL);
+
+	gtk_style_context_add_provider (gtk_widget_get_style_context (sdd->button),
+					GTK_STYLE_PROVIDER (provider),
+					GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+					g_object_unref (provider);
 #else
 	gtk_rc_parse_string ("\n"
 		"   style \"showdesktop-button-style\"\n"

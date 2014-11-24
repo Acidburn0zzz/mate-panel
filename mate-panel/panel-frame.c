@@ -26,6 +26,9 @@
 
 #include "panel-frame.h"
 
+#define MATE_DESKTOP_USE_UNSTABLE_API
+#include <libmate-desktop/mate-desktop-utils.h>
+
 #include "panel-typebuiltins.h"
 
 G_DEFINE_TYPE (PanelFrame, panel_frame, GTK_TYPE_BIN)
@@ -35,6 +38,81 @@ enum {
 	PROP_EDGES
 };
 
+#if GTK_CHECK_VERSION (3, 0, 0)
+static void
+panel_frame_get_preferred_width (GtkWidget *widget,
+				 gint *minimal_width,
+				 gint *natural_width)
+{
+	PanelFrame      *frame = (PanelFrame *) widget;
+	GtkBin          *bin = (GtkBin *) widget;
+	GtkStyleContext *context;
+	GtkWidget       *child;
+	GtkBorder        padding;
+	int              border_width;
+
+	context = gtk_widget_get_style_context (widget);
+	gtk_style_context_get_padding (context, gtk_widget_get_state_flags (widget), &padding);
+	border_width = gtk_container_get_border_width (GTK_CONTAINER (widget));
+
+	*minimal_width = 1;
+	*natural_width = 1;
+
+	child = gtk_bin_get_child (bin);
+	if (child && gtk_widget_get_visible (child))
+		gtk_widget_get_preferred_width (child, minimal_width, natural_width);
+
+	*minimal_width += border_width;
+	*natural_width += border_width;
+
+	if (frame->edges & PANEL_EDGE_LEFT) {
+		*minimal_width += padding.left;
+		*natural_width += padding.left;
+	}
+
+	if (frame->edges & PANEL_EDGE_RIGHT) {
+		*minimal_width += padding.right;
+		*natural_width += padding.right;
+	}
+}
+
+static void
+panel_frame_get_preferred_height (GtkWidget *widget,
+				  gint *minimal_height,
+				  gint *natural_height)
+{
+	PanelFrame      *frame = (PanelFrame *) widget;
+	GtkBin          *bin   = (GtkBin *) widget;
+	GtkStyleContext *context;
+	GtkWidget       *child;
+	GtkBorder        padding;
+	int              border_width;
+
+	context = gtk_widget_get_style_context (widget);
+	gtk_style_context_get_padding (context, gtk_widget_get_state_flags (widget), &padding);	border_width = gtk_container_get_border_width (GTK_CONTAINER (widget));
+
+	*minimal_height = 1;
+	*natural_height = 1;
+
+	child = gtk_bin_get_child (bin);
+	if (child && gtk_widget_get_visible (child))
+		gtk_widget_get_preferred_height (child, minimal_height, natural_height);
+
+	*minimal_height += border_width;
+	*natural_height += border_width;
+
+	if (frame->edges & PANEL_EDGE_TOP) {
+		*minimal_height += padding.top;
+		*natural_height += padding.top;
+	}
+
+	if (frame->edges & PANEL_EDGE_BOTTOM) {
+		*minimal_height += padding.bottom;
+		*natural_height += padding.bottom;
+	}
+}
+
+#else
 static void
 panel_frame_size_request (GtkWidget      *widget,
 			  GtkRequisition *requisition)
@@ -71,44 +149,33 @@ panel_frame_size_request (GtkWidget      *widget,
 	if (frame->edges & PANEL_EDGE_RIGHT)
 		requisition->width += style->ythickness;
 }
-
-#if GTK_CHECK_VERSION (3, 0, 0)
-static void
-panel_frame_get_preferred_width (GtkWidget *widget,
-								    gint *minimum_width,
-								    gint *natural_width)
-{
-	GtkRequisition req;
-	panel_frame_size_request (widget, &req);
-	*minimum_width = *natural_width = req.width;
-}
-
-static void
-panel_frame_get_preferred_height (GtkWidget *widget,
-									 gint *minimum_height,
-									 gint *natural_height)
-{
-	GtkRequisition req;
-	panel_frame_size_request (widget, &req);
-	*minimum_height = *natural_height = req.height;
-}
 #endif
 
 static void
 panel_frame_size_allocate (GtkWidget     *widget,
 			   GtkAllocation *allocation)
 {
-	PanelFrame    *frame = (PanelFrame *) widget;
-	GtkBin        *bin   = (GtkBin *) widget;
-	GtkStyle      *style;
-	GtkAllocation  child_allocation;
-	GtkAllocation  child_allocation_current;
-	GtkWidget     *child;
-	int            border_width;
+	PanelFrame      *frame = (PanelFrame *) widget;
+	GtkBin          *bin   = (GtkBin *) widget;
+#if GTK_CHECK_VERSION (3, 0, 0)
+	GtkStyleContext *context;
+	GtkBorder        padding;
+#else
+	GtkStyle        *style;
+#endif
+	GtkAllocation    child_allocation;
+	GtkAllocation    child_allocation_current;
+	GtkWidget       *child;
+	int              border_width;
 
 	gtk_widget_set_allocation (widget, allocation);
 
+#if GTK_CHECK_VERSION (3, 0, 0)
+	context = gtk_widget_get_style_context (widget);
+	gtk_style_context_get_padding (context, gtk_widget_get_state_flags (widget), &padding);
+#else
 	style = gtk_widget_get_style (widget);
+#endif
 	border_width = gtk_container_get_border_width (GTK_CONTAINER (widget));
 
 	child_allocation.x      = allocation->x + border_width;
@@ -117,20 +184,38 @@ panel_frame_size_allocate (GtkWidget     *widget,
 	child_allocation.height = allocation->height - 2 * border_width;
 
 	if (frame->edges & PANEL_EDGE_LEFT) {
+#if GTK_CHECK_VERSION (3, 0, 0)
+		child_allocation.x     += padding.left;
+		child_allocation.width -= padding.left;
+#else
 		child_allocation.x     += style->xthickness;
 		child_allocation.width -= style->xthickness;
+#endif
 	}
 
 	if (frame->edges & PANEL_EDGE_TOP) {
+#if GTK_CHECK_VERSION (3, 0, 0)
+		child_allocation.y      += padding.top;
+		child_allocation.height -= padding.top;
+#else
 		child_allocation.y      += style->ythickness;
 		child_allocation.height -= style->ythickness;
+#endif
 	}
 
 	if (frame->edges & PANEL_EDGE_RIGHT)
+#if GTK_CHECK_VERSION (3, 0, 0)
+		child_allocation.width -= padding.left;
+#else
 		child_allocation.width -= style->xthickness;
+#endif
 
 	if (frame->edges & PANEL_EDGE_BOTTOM)
+#if GTK_CHECK_VERSION (3, 0, 0)
+		child_allocation.height -= padding.top;
+#else
 		child_allocation.height -= style->ythickness;
+#endif
 
 	child = gtk_bin_get_child (bin);
 	gtk_widget_get_allocation (child, &child_allocation_current);
@@ -153,126 +238,127 @@ panel_frame_draw (GtkWidget      *widget,
 #endif
 		  PanelFrameEdge  edges)
 {
-#if !GTK_CHECK_VERSION (3, 0, 0)
-	GdkWindow     *window;
-#endif
-	GtkStyle      *style;
-	GtkStateType   state;
+	PanelFrame       *frame = (PanelFrame *) widget;
 #if GTK_CHECK_VERSION (3, 0, 0)
-	GdkColor      *dark, *light, *black;
+	GtkStyleContext  *context;
+	GtkStateFlags     state;
+	GdkRGBA           bg, dark, light;
+	GtkBorder         padding;
 #else
-	GtkAllocation  allocation;
-	GdkGC         *dark, *light, *black;
+	GdkWindow        *window;
+	GtkStyle         *style;
+	GtkStateType      state;
+	GtkAllocation     allocation;
+	GdkGC            *dark, *light, *black;
+	int               xthickness, ythickness;
 #endif
-	int            x, y, width, height;
-	int            xthickness, ythickness;
+	int               x, y, width, height;
+
 
 	if (edges == PANEL_EDGE_NONE)
 		return;
 
-#if !GTK_CHECK_VERSION (3, 0, 0)
-	window = gtk_widget_get_window (widget);
-#endif
-	style = gtk_widget_get_style (widget);
-	state = gtk_widget_get_state (widget);
 #if GTK_CHECK_VERSION (3, 0, 0)
-	x = 0;
-	y = 0;
+	context = gtk_widget_get_style_context (widget);
+	state = gtk_widget_get_state_flags (widget);
+
 	width = gtk_widget_get_allocated_width (widget);
 	height = gtk_widget_get_allocated_height (widget);
+
+	mate_desktop_gtk_style_get_light_color (context, state, &light);
+	gtk_style_context_get_padding (context, state, &padding);
 #else
+	window = gtk_widget_get_window (widget);
+	style = gtk_widget_get_style (widget);
+	state = gtk_widget_get_state (widget);
+
 	gtk_widget_get_allocation (widget, &allocation);
 	x      = allocation.x;
 	y      = allocation.y;
 	width  = allocation.width;
 	height = allocation.height;
-#endif
 
-#if GTK_CHECK_VERSION (3, 0, 0)
-	dark = &style->dark [state];
-	light = &style->light [state];
-	black = &style->black;
-#else
 	dark  = style->dark_gc [state];
 	light = style->light_gc [state];
 	black = style->black_gc;
-#endif
 
 	xthickness = style->xthickness;
 	ythickness = style->ythickness;
-
+#endif
 	/* Copied from gtk_default_draw_shadow() */
+
+	x = y = 0;
 
 #if GTK_CHECK_VERSION (3, 0, 0)
 	cairo_set_line_width (cr, 1);
 
-	if (edges & PANEL_EDGE_BOTTOM && ythickness > 0) {
-		if (ythickness > 1) {
-			gdk_cairo_set_source_color (cr, dark);
+	if (frame->edges & PANEL_EDGE_BOTTOM && padding.bottom > 0) {
+		if (padding.bottom > 1) {
+			gdk_cairo_set_source_rgba (cr, &dark);
 			cairo_move_to (cr, x + .5, y + height - 2 + .5);
 			cairo_line_to (cr, x + width - 1 - .5, y + height - 2 + .5);
 			cairo_stroke (cr);
 
-			gdk_cairo_set_source_color (cr, black);
+			cairo_set_source_rgb (cr, 0., 0., 0.);
 			cairo_move_to (cr, x + .5, y + height - 1 - .5);
 			cairo_line_to (cr, x + width - 1 - .5, y + height - 1 - .5);
 			cairo_stroke (cr);
 		} else {
-			gdk_cairo_set_source_color (cr, dark);
+			gdk_cairo_set_source_rgba (cr, &dark);
 			cairo_move_to (cr, x + .5, y + height - 1 - .5);
 			cairo_line_to (cr, x + width - 1 - .5, y + height - 1 - .5);
 			cairo_stroke (cr);
 		}
 	}
 
-	if (edges & PANEL_EDGE_RIGHT && xthickness > 0) {
-		if (xthickness > 1) {
-			gdk_cairo_set_source_color (cr, dark);
+	if (frame->edges & PANEL_EDGE_RIGHT && padding.right > 0) {
+		if (padding.right > 1) {
+			gdk_cairo_set_source_rgba (cr, &dark);
 			cairo_move_to (cr, x + width - 2 - .5, y + .5);
 			cairo_line_to (cr, x + width - 2 - .5, y + height - 1 - .5);
 			cairo_stroke (cr);
 
-			gdk_cairo_set_source_color (cr, black);
+			cairo_set_source_rgb (cr, 0., 0., 0.);
 			cairo_move_to (cr, x + width - 1 - .5, y + .5);
 			cairo_line_to (cr, x + width - 1 - .5, y + height - 1 - .5);
 			cairo_stroke (cr);
 		} else {
-			gdk_cairo_set_source_color (cr, dark);
+			gdk_cairo_set_source_rgba (cr, &dark);
 			cairo_move_to (cr, x + width - 1 - .5, y + .5);
 			cairo_line_to (cr, x + width - 1 - .5, y + height - 1 - .5);
 			cairo_stroke (cr);
 		}
 	}
 
-	if (edges & PANEL_EDGE_TOP && ythickness > 0) {
-		gdk_cairo_set_source_color (cr, light);
+	if (frame->edges & PANEL_EDGE_TOP && padding.top > 0) {
+		gdk_cairo_set_source_rgba (cr, &light);
 		cairo_move_to (cr, x + .5, y + .5);
 		cairo_line_to (cr, x + width - 1 - .5, y + .5);
 		cairo_stroke (cr);
 
-		if (ythickness > 1) {
-			gdk_cairo_set_source_color (cr, &style->bg [state]);
+		if (padding.top > 1) {
+			gdk_cairo_set_source_rgba (cr, &bg);
 			cairo_move_to (cr, x + .5, y + 1 + .5);
 			cairo_line_to (cr, x + width - 1 - .5, y + 1 + .5);
 			cairo_stroke (cr);
 		}
 	}
 
-	if (edges & PANEL_EDGE_LEFT && xthickness > 0) {
-		gdk_cairo_set_source_color (cr, light);
+	if (frame->edges & PANEL_EDGE_LEFT && padding.left > 0) {
+		gdk_cairo_set_source_rgba (cr, &light);
 		cairo_move_to (cr, x + .5, y + .5);
 		cairo_line_to (cr, x + .5, y + height - 1 - .5);
 		cairo_stroke (cr);
 
-		if (xthickness > 1) {
-			gdk_cairo_set_source_color (cr, &style->bg [state]);
+		if (padding.left > 1) {
+			gdk_cairo_set_source_rgba (cr, &bg);
 			cairo_move_to (cr, x + 1 + .5, y + .5);
 			cairo_line_to (cr, x + 1 + .5, y + height - 1 - .5);
 			cairo_stroke (cr);
 		}
 	}
 #else
-	if (edges & PANEL_EDGE_BOTTOM && ythickness > 0) {
+	if (frame->edges & PANEL_EDGE_BOTTOM && ythickness > 0) {
 		if (ythickness > 1) {
 			gdk_draw_line (window, dark,
 				       x, y + height - 2,
@@ -286,7 +372,7 @@ panel_frame_draw (GtkWidget      *widget,
 				       x + width - 1, y + height - 1);
 	}
 
-	if (edges & PANEL_EDGE_RIGHT && xthickness > 0) {
+	if (frame->edges & PANEL_EDGE_RIGHT && xthickness > 0) {
 		if (xthickness > 1) {
 			gdk_draw_line (window, dark,
 				       x + width - 2, y,
@@ -301,7 +387,7 @@ panel_frame_draw (GtkWidget      *widget,
 				       x + width - 1, y + height - 1);
 	}
 
-	if (edges & PANEL_EDGE_TOP && ythickness > 0) {
+	if (frame->edges & PANEL_EDGE_TOP && ythickness > 0) {
 		gdk_draw_line (window, light,
 			       x, y, x + width - 1, y);
 
@@ -311,7 +397,7 @@ panel_frame_draw (GtkWidget      *widget,
 				       x, y + 1, x + width - 1, y + 1);
 	}
 
-	if (edges & PANEL_EDGE_LEFT && xthickness > 0) {
+	if (frame->edges & PANEL_EDGE_LEFT && xthickness > 0) {
 		gdk_draw_line (window, light,
 			       x, y, x, y + height - 1);
 

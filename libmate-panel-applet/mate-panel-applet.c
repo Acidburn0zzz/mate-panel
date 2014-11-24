@@ -2598,6 +2598,7 @@ int mate_panel_applet_factory_main(const gchar* factory_id, gboolean out_process
 	return 1;
 }
 
+#if !GTK_CHECK_VERSION (3, 0, 0)
 void
 mate_panel_applet_set_background_widget (MatePanelApplet *applet,
 				    GtkWidget   *widget)
@@ -2631,6 +2632,7 @@ mate_panel_applet_set_background_widget (MatePanelApplet *applet,
 #endif
 	}
 }
+#endif
 
 guint32
 mate_panel_applet_get_xid (MatePanelApplet *applet,

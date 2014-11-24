@@ -39,6 +39,8 @@ static GSList *registered_applets = NULL;
 static GSList *queued_position_saves = NULL;
 static guint   queued_position_source = 0;
 
+static void applet_menu_show (GtkWidget *w, AppletInfo *info);
+static void applet_menu_deactivate (GtkWidget *w, AppletInfo *info);
 
 static inline PanelWidget *
 mate_panel_applet_get_panel_widget (AppletInfo *info)
@@ -163,6 +165,9 @@ mate_panel_applet_recreate_menu (AppletInfo	*info)
 		menu->menuitem =NULL;
 		menu->submenu =NULL;
 	}
+
+	g_signal_handlers_disconnect_by_func (info->menu, G_CALLBACK (applet_menu_show), info);
+	g_signal_handlers_disconnect_by_func (info->menu, G_CALLBACK (applet_menu_deactivate), info);
 
 	g_object_unref (info->menu);
 	info->menu = mate_panel_applet_create_menu (info);
@@ -542,8 +547,13 @@ mate_panel_applet_create_menu (AppletInfo *info)
 		}
 
 		menuitem = gtk_image_menu_item_new_with_mnemonic (_("_Remove From Panel"));
+#if GTK_CHECK_VERSION (3, 10, 0)
+		image = gtk_image_new_from_icon_name ("list-remove",
+						  GTK_ICON_SIZE_MENU);
+#else
 		image = gtk_image_new_from_stock (GTK_STOCK_REMOVE,
 						  GTK_ICON_SIZE_MENU);
+#endif
 		gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menuitem),
 					       image);
 		g_signal_connect (menuitem, "activate",
@@ -805,8 +815,11 @@ mate_panel_applet_destroy (GtkWidget  *widget,
 		panel_lockdown_notify_remove (G_CALLBACK (mate_panel_applet_recreate_menu),
 					      info);
 
-	if (info->menu)
+	if (info->menu) {
+		g_signal_handlers_disconnect_by_func (info->menu, G_CALLBACK (applet_menu_show), info);
+		g_signal_handlers_disconnect_by_func (info->menu, G_CALLBACK (applet_menu_deactivate), info);
 		g_object_unref (info->menu);
+	}
 	info->menu = NULL;
 
 	if (info->data_destroy)

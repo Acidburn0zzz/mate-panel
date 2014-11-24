@@ -130,7 +130,7 @@ panel_app_info_launch_uris (GAppInfo   *appinfo,
 							   &local_error);
 #if GLIB_CHECK_VERSION (2, 38, 0)
 	} else {
-		g_desktop_app_info_launch_action ((GDesktopAppInfo*)appinfo, action, context);
+		g_desktop_app_info_launch_action ((GDesktopAppInfo*)appinfo, action, (GAppLaunchContext *)context);
 		retval = TRUE;
 	}
 #endif

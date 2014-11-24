@@ -361,7 +361,7 @@ panel_menu_button_menu_deactivated (PanelMenuButton *button)
 
 #if GTK_CHECK_VERSION (3, 0, 0)
 	gtk_widget_unset_state_flags (GTK_WIDGET (button),
-								  GTK_STATE_FLAG_PRELIGHT);
+				      GTK_STATE_FLAG_PRELIGHT);
 #else
 	GTK_BUTTON (button)->in_button = FALSE;
 #endif
@@ -667,7 +667,11 @@ panel_menu_button_load (const char  *menu_path,
 
 	button->priv->applet_id = g_strdup (info->id);
 
+#if GTK_CHECK_VERSION (3, 10, 0)
+	mate_panel_applet_add_callback (info, "help", "help-browser", _("_Help"), NULL);
+#else
 	mate_panel_applet_add_callback (info, "help", GTK_STOCK_HELP, _("_Help"), NULL);
+#endif
 
         if (!panel_lockdown_get_locked_down () &&
             (panel_is_program_in_path ("mozo") ||

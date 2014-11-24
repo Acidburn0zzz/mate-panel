@@ -252,6 +252,17 @@ button_widget_reload_pixbuf (ButtonWidget *button)
 #endif
 			g_free (error);
 		}
+
+		/* We need to add a child to the button to get the right allocation of the pixbuf.
+		 * When the button is created without a pixbuf, get_preferred_width/height are
+		 * called the first time when the widget is allocated and 0x0 size is cached by
+		 * gtksizerequest. Since the widget doesn't change its size when a pixbuf is set,
+		 * gtk_widget_queue_resize() always uses the cached values instead of calling
+		 * get_preferred_width_height() again. So the actual size, based on pixbuf size,
+		 * is never used. We are overriding the draw() method, so having a child doesn't
+		 * affect the widget rendering anyway.
+		 */
+		gtk_button_set_image (GTK_BUTTON (button), gtk_image_new_from_pixbuf (button->priv->pixbuf));
 	}
 
 	button->priv->pixbuf_hc = make_hc_pixbuf (button->priv->pixbuf);
@@ -353,36 +364,28 @@ button_widget_set_property (GObject      *object,
 	}
 }
 
-#if GTK_CHECK_VERSION (3, 0, 0)
-static gdouble
-calc_arrow (PanelOrientation  orientation,
-	    int               button_width,
-	    int               button_height,
-	    gdouble           *x,
-	    gdouble           *y,
-	    gdouble           *size)
-#else
 static GtkArrowType
 calc_arrow (PanelOrientation  orientation,
 	    int               button_width,
 	    int               button_height,
 	    int              *x,
 	    int              *y,
+#if GTK_CHECK_VERSION (3, 0, 0)
+	    gdouble          *angle,
+	    gdouble          *size)
+#else
 	    int              *width,
 	    int              *height)
 #endif
 {
-#if GTK_CHECK_VERSION (3, 0, 0)
-	gdouble retval = 0;
-#else
 	GtkArrowType retval = GTK_ARROW_UP;
-#endif
 	double scale;
 
 	scale = (orientation & PANEL_HORIZONTAL_MASK ? button_height : button_width) / 48.0;
 
 #if GTK_CHECK_VERSION (3, 0, 0)
 	*size = 12 * scale;
+	*angle = 0;
 #else
 	*width  = 12 * scale;
 	*height = 12 * scale;
@@ -393,37 +396,33 @@ calc_arrow (PanelOrientation  orientation,
 		*x     = scale * 3;
 		*y     = scale * (48 - 13);
 #if GTK_CHECK_VERSION (3, 0, 0)
-		retval = G_PI;
-#else
-		retval = GTK_ARROW_DOWN;
+		*angle = G_PI;
 #endif
+		retval = GTK_ARROW_DOWN;
 		break;
 	case PANEL_ORIENTATION_BOTTOM:
 		*x     = scale * (48 - 13);
 		*y     = scale * 1;
 #if GTK_CHECK_VERSION (3, 0, 0)
-		retval = 0;
-#else
-		retval = GTK_ARROW_UP;
+		*angle = 0;
 #endif
+		retval = GTK_ARROW_UP;
 		break;
 	case PANEL_ORIENTATION_LEFT:
 		*x     = scale * (48 - 13);
 		*y     = scale * 3;
 #if GTK_CHECK_VERSION (3, 0, 0)
-		retval = G_PI / 2;
-#else
-		retval = GTK_ARROW_RIGHT;
+		*angle = G_PI / 2;
 #endif
+		retval = GTK_ARROW_RIGHT;
 		break;
 	case PANEL_ORIENTATION_RIGHT:
 		*x     = scale * 1;
 		*y     = scale * 3;
 #if GTK_CHECK_VERSION (3, 0, 0)
-		retval = 3 * G_PI /2;
-#else
-		retval = GTK_ARROW_LEFT;
+		*angle = 3 * (G_PI / 2);
 #endif
+		retval = GTK_ARROW_LEFT;
 		break;
 	}
 
@@ -447,20 +446,15 @@ button_widget_expose (GtkWidget         *widget,
 	int width;
 	int height;
 #if GTK_CHECK_VERSION (3, 0, 0)
+	GtkStyleContext *context;
 	GtkStateFlags state_flags;
-	GtkStyleContext *style;
 #else
 	GtkAllocation allocation;
 	GdkRectangle area, image_bound;
 	GtkStyle *style;
 #endif
 	int off;
-#if GTK_CHECK_VERSION (3, 0, 0)
-	gdouble x, y, w, h;
-#else
 	int x, y, w, h;
-#endif
-
 	GdkPixbuf *pb = NULL;
   
 	g_return_val_if_fail (BUTTON_IS_WIDGET (widget), FALSE);
@@ -553,23 +547,62 @@ button_widget_expose (GtkWidget         *widget,
 	g_object_unref (pb);
 
 #if GTK_CHECK_VERSION (3, 0, 0)
-	style = gtk_widget_get_style_context (widget);
-#else
-	style = gtk_widget_get_style (widget);
-#endif
+	context = gtk_widget_get_style_context (widget);
 
 	if (button_widget->priv->arrow) {
-#if GTK_CHECK_VERSION (3, 0, 0)
-		gdouble angle;
-		gdouble size = MAX (width, height);
+		gdouble angle, size;
+		gtk_style_context_save (context);
+		gtk_style_context_set_state (context, state_flags);
 
-		angle = calc_arrow (button_widget->priv->orientation,
-					 width,
-					 height,
-					 &x,
-					 &y,
-					 &size);
+		calc_arrow (button_widget->priv->orientation,
+					 width, height,
+					 &x, &y,
+					 &angle, &size);
+
+		cairo_save (cr);
+		gtk_render_arrow (context, cr, angle, x, y, size);
+		cairo_restore (cr);
+
+		gtk_style_context_restore (context);
+	}
+
+	if (button_widget->priv->dnd_highlight) {
+
+		cairo_save (cr);
+		cairo_set_line_width (cr, 1);
+		cairo_set_source_rgb (cr, 0., 0., 0.);
+		cairo_rectangle (cr, 0.5, 0.5, width - 1, height - 1);
+		cairo_stroke (cr);
+		cairo_restore (cr);
+	}
+
+	if (gtk_widget_has_focus (widget)) {
+		gint focus_pad;
+
+		gtk_style_context_save (context);
+		gtk_style_context_set_state (context, state_flags);
+
+		gtk_widget_style_get (widget,
+				      "focus-padding", &focus_pad,
+				      NULL);
+		x = focus_pad;
+		y = focus_pad;
+		w = width - 2 * focus_pad;
+		h = height - 2 * focus_pad;
+
+		cairo_save (cr);
+		gtk_render_focus (context, cr, x, y, w, h);
+		cairo_restore (cr);
+
+		gtk_style_context_restore (context);
+	}
+
+	return FALSE;
+}
 #else
+	style = gtk_widget_get_style (widget);
+
+	if (button_widget->priv->arrow) {
 		GtkArrowType arrow_type;
 
 		arrow_type = calc_arrow (button_widget->priv->orientation,
@@ -579,14 +612,7 @@ button_widget_expose (GtkWidget         *widget,
 					 &y,
 					 &width,
 					 &height);
-#endif
 
-#if GTK_CHECK_VERSION (3, 0, 0)
-		gtk_render_arrow (style,
-				 cr,
-				 angle,
-				 x, y, size);
-#else
 		gtk_paint_arrow (style,
 				 window,
 				 GTK_STATE_NORMAL,
@@ -600,24 +626,14 @@ button_widget_expose (GtkWidget         *widget,
 				 allocation.y + y,
 				 width,
 				 height);
-#endif
 	}
 
-	if (button_widget->priv->dnd_highlight) {
-#if GTK_CHECK_VERSION (3, 0, 0)
-		cairo_save (cr);
-		cairo_set_line_width (cr, 1);
-		cairo_set_source_rgba (cr, 0, 0, 0, 0);
-		cairo_rectangle (cr, 0.5, 0.5, width - 1, height - 1);
-		cairo_stroke (cr);
-		cairo_restore (cr);
-#else
+		if (button_widget->priv->dnd_highlight) {
 		gdk_draw_rectangle(window, style->black_gc, FALSE,
 				   allocation.x, allocation.y,
 				   allocation.width - 1,
 				   allocation.height - 1);
-#endif
-	}
+		}
 
 	if (gtk_widget_has_focus (widget)) {
 		gint focus_width, focus_pad;
@@ -626,34 +642,44 @@ button_widget_expose (GtkWidget         *widget,
 				      "focus-line-width", &focus_width,
 				      "focus-padding", &focus_pad,
 				      NULL);
-#if GTK_CHECK_VERSION (3, 0, 0)
-		x = focus_pad;
-		y = focus_pad;
-		w= width - 2 * focus_pad;
-		h= height - 2 * focus_pad;
-#else
+
 		x = allocation.x + focus_pad;
 		y = allocation.y + focus_pad;
 		width = allocation.width -  2 * focus_pad;
 		height = allocation.height - 2 * focus_pad;
-#endif
 
-#if GTK_CHECK_VERSION (3, 0, 0)
-		gtk_render_focus (style,
-				 cr,
-				 x, y, w, h);
-#else
 		gtk_paint_focus (style,
 				 window,
 				 GTK_STATE_NORMAL,
 				 &event->area, widget, "button",
 				 x, y, width, height);
-#endif
 	}
 
 	return FALSE;
 }
+#endif
 
+#if GTK_CHECK_VERSION (3, 0, 0)
+static void
+button_widget_get_preferred_width (GtkWidget *widget,
+				   gint *minimal_width,
+				   gint *natural_width)
+{
+	ButtonWidget *button_widget = BUTTON_WIDGET (widget);
+
+	*minimal_width = *natural_width = gdk_pixbuf_get_width  (button_widget->priv->pixbuf);
+}
+
+static void
+button_widget_get_preferred_height (GtkWidget *widget,
+				    gint *minimal_height,
+				    gint *natural_height)
+{
+	ButtonWidget *button_widget = BUTTON_WIDGET (widget);
+
+	*minimal_height = *natural_height = gdk_pixbuf_get_height (button_widget->priv->pixbuf);
+}
+#else
 static void
 button_widget_size_request (GtkWidget      *widget,
 			    GtkRequisition *requisition)
@@ -664,27 +690,6 @@ button_widget_size_request (GtkWidget      *widget,
 		requisition->width  = gdk_pixbuf_get_width  (button_widget->priv->pixbuf);
 		requisition->height = gdk_pixbuf_get_height (button_widget->priv->pixbuf);
 	}
-}
-
-#if GTK_CHECK_VERSION (3, 0, 0)
-static void
-button_widget_get_preferred_width (GtkWidget *widget,
-								   gint *minimum_width,
-								   gint *natural_width)
-{
-	GtkRequisition req;
-	button_widget_size_request (widget, &req);
-	*minimum_width = *natural_width = req.width;
-}
-
-static void
-button_widget_get_preferred_height (GtkWidget *widget,
-									gint *minimum_height,
-									gint *natural_height)
-{
-	GtkRequisition req;
-	button_widget_size_request (widget, &req);
-	*minimum_height = *natural_height = req.height;
 }
 #endif
 
@@ -854,17 +859,14 @@ button_widget_class_init (ButtonWidgetClass *klass)
 #if GTK_CHECK_VERSION (3, 0, 0)
 	widget_class->get_preferred_width = button_widget_get_preferred_width;
 	widget_class->get_preferred_height = button_widget_get_preferred_height;
+	widget_class->draw               = button_widget_draw;
 #else
 	widget_class->size_request       = button_widget_size_request;
+	widget_class->expose_event       = button_widget_expose;
 #endif
 	widget_class->button_press_event = button_widget_button_press;
 	widget_class->enter_notify_event = button_widget_enter_notify;
 	widget_class->leave_notify_event = button_widget_leave_notify;
-#if GTK_CHECK_VERSION (3, 0, 0)
-	widget_class->draw               = button_widget_draw;
-#else
-	widget_class->expose_event       = button_widget_expose;
-#endif
 
 	button_class->activate = button_widget_activate;
 

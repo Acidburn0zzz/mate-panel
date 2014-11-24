@@ -49,70 +49,81 @@ panel_separator_paint (GtkWidget    *widget,
 		       GdkRectangle *area)
 #endif
 {
-	PanelSeparator *separator;
+	PanelSeparator  *separator;
 #if GTK_CHECK_VERSION (3, 0, 0)
-	GtkStyleContext  *style;
-	int             width;
-	int             height;
-	GtkBorder padding;
+	GtkStyleContext *context;
+	GtkStateFlags    state;
+	GtkBorder        padding;
+	int              width;
+	int              height;
 #else
-	GtkStyle       *style;
-	GdkWindow      *window;
-	GtkAllocation   allocation;
+	GtkStyle        *style;
+	GdkWindow       *window;
+	GtkAllocation    allocation;
 #endif
 
 	separator = PANEL_SEPARATOR (widget);
 
 #if GTK_CHECK_VERSION (3, 0, 0)
-	style = gtk_widget_get_style_context (widget);
+	state = gtk_widget_get_state_flags (widget);
 	width = gtk_widget_get_allocated_width (widget);
 	height = gtk_widget_get_allocated_height (widget);
 
-	gtk_style_context_get_padding(style, gtk_widget_get_state_flags (widget), &padding);
+	context = gtk_widget_get_style_context (widget);
+	gtk_style_context_get_padding (context, state, &padding);
+
+	gtk_style_context_save (context);
+	gtk_style_context_set_state (context, state);
+
+	cairo_save (cr);
+
+	if (separator->priv->orientation == GTK_ORIENTATION_HORIZONTAL) {
+		int x;
+
+		x = (width - padding.left - padding.right) / 2 + padding.left;
+		x = MIN (x, width - padding.right);
+
+		gtk_render_line (context, cr,
+				 x, padding.top,
+				 x, height - padding.bottom);
+	} else {
+		int y;
+
+		y = (height - padding.top - padding.bottom) / 2 + padding.top;
+		y = MIN (y, height - padding.bottom);
+
+		gtk_render_line (context, cr,
+				 padding.left, y,
+				 width - padding.right, y);
+	}
+	cairo_restore (cr);
+
+	gtk_style_context_restore (context);
+}
 #else
 	style = gtk_widget_get_style (widget);
 	window = gtk_widget_get_window (widget);
 	gtk_widget_get_allocation (widget, &allocation);
-#endif
 
 	if (separator->priv->orientation == GTK_ORIENTATION_HORIZONTAL) {
-#if GTK_CHECK_VERSION (3, 0, 0)
-		gtk_render_line (style,
-				 cr,
-				 (width - padding.top) / 2,
-				 padding.left,
-				 (width - padding.top) / 2,
-				 height - padding.right);
-#else
 		gtk_paint_vline (style,
 				 window,
 				 gtk_widget_get_state (widget),
-				 area,
-				 widget, "separator",
+				 area, widget, "separator",
 				 style->xthickness,
 				 allocation.height - style->xthickness,
 				 (allocation.width - style->xthickness) / 2);
-#endif
 	} else {
-#if GTK_CHECK_VERSION (3, 0, 0)
-		gtk_render_line (style,
-				 cr,
-				 padding.left,
-				 (height - padding.left) / 2,
-				 width - padding.right,
-				 (height - padding.left) / 2);
-#else
 		gtk_paint_hline (style,
 				 window,
 				 gtk_widget_get_state (widget),
-				 area,
-				 widget, "separator",
+				 area, widget, "separator",
 				 style->ythickness,
 				 allocation.width - style->ythickness,
 				 (allocation.height  - style->ythickness) / 2);
-#endif
 	}
 }
+#endif
 
 #if GTK_CHECK_VERSION (3, 0, 0)
 static gboolean panel_separator_draw(GtkWidget* widget, cairo_t* cr)
@@ -134,6 +145,43 @@ static gboolean panel_separator_expose_event(GtkWidget* widget, GdkEventExpose* 
 	return FALSE;
 }
 
+#if GTK_CHECK_VERSION (3, 0, 0)
+static void
+panel_separator_get_preferred_width (GtkWidget *widget,
+				     gint *minimal_width,
+				     gint *natural_width)
+{
+	PanelSeparator *separator;
+	int             size;
+
+	separator = PANEL_SEPARATOR (widget);
+
+	size = panel_toplevel_get_size (separator->priv->panel->toplevel);
+
+	if (separator->priv->orientation == GTK_ORIENTATION_VERTICAL)
+		*minimal_width = *natural_width = size;
+	else
+		*minimal_width = *natural_width = SEPARATOR_SIZE;
+}
+
+static void
+panel_separator_get_preferred_height (GtkWidget *widget,
+				      gint *minimal_height,
+				      gint *natural_height)
+{
+	PanelSeparator *separator;
+	int             size;
+
+	separator = PANEL_SEPARATOR (widget);
+
+	size = panel_toplevel_get_size (separator->priv->panel->toplevel);
+
+	if (separator->priv->orientation == GTK_ORIENTATION_VERTICAL)
+		*minimal_height = *natural_height = SEPARATOR_SIZE;
+	else
+		*minimal_height = *natural_height = size;
+}
+#else
 static void
 panel_separator_size_request (GtkWidget      *widget,
 			      GtkRequisition *requisition)
@@ -152,27 +200,6 @@ panel_separator_size_request (GtkWidget      *widget,
 		requisition->width = SEPARATOR_SIZE;
 		requisition->height = size;
 	}
-}
-
-#if GTK_CHECK_VERSION (3, 0, 0)
-static void
-panel_separator_get_preferred_width (GtkWidget *widget,
-									 gint *minimum_width,
-									 gint *natural_width)
-{
-	GtkRequisition req;
-	panel_separator_size_request (widget, &req);
-	*minimum_width = *natural_width = req.width;
-}
-
-static void
-panel_separator_get_preferred_height (GtkWidget *widget,
-									  gint *minimum_height,
-									  gint *natural_height)
-{
-	GtkRequisition req;
-	panel_separator_size_request (widget, &req);
-	*minimum_height = *natural_height = req.height;
 }
 #endif
 

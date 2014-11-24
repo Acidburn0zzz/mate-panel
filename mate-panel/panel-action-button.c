@@ -190,7 +190,11 @@ panel_action_lock_setup_menu (PanelActionButton *button)
 
 	mate_panel_applet_add_callback (button->priv->info,
 				   "prefs",
+#if GTK_CHECK_VERSION (3, 10, 0)
+				   "document-properties",
+#else
 				   GTK_STOCK_PROPERTIES,
+#endif
 				   _("_Properties"),
 				   screensaver_properties_enabled);
 }
@@ -701,7 +705,11 @@ panel_action_button_connect_to_gsettings (PanelActionButton *button)
 }
 
 static void
+#if GTK_CHECK_VERSION (3, 0, 0)
+panel_action_button_style_updated (PanelActionButton *button)
+#else
 panel_action_button_style_set (PanelActionButton *button)
+#endif
 {
 	if (actions [button->priv->type].icon_name != NULL)
 		button_widget_set_icon_name (BUTTON_WIDGET (button), actions [button->priv->type].icon_name);
@@ -735,7 +743,11 @@ panel_action_button_load (PanelActionButtonType  type,
 
 	mate_panel_applet_add_callback (button->priv->info,
 				   "help",
+#if GTK_CHECK_VERSION (3, 10, 0)
+				   "help-browser",
+#else
 				   GTK_STOCK_HELP,
+#endif
 				   _("_Help"),
 				   NULL);
 
@@ -747,8 +759,13 @@ panel_action_button_load (PanelActionButtonType  type,
 
 	panel_action_button_connect_to_gsettings (button);
 
+#if GTK_CHECK_VERSION (3, 0, 0)
+	g_signal_connect (button, "style-updated",
+			  G_CALLBACK (panel_action_button_style_updated), NULL);
+#else
 	g_signal_connect (button, "style-set",
 			  G_CALLBACK (panel_action_button_style_set), NULL);
+#endif
 }
 
 void
