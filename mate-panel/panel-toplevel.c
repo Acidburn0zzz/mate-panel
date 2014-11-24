@@ -2345,7 +2345,6 @@ calculate_minimum_height (GtkWidget        *widget,
 	GtkStateFlags     state;
 	GtkStyleContext  *style_context;
 	const PangoFontDescription *font_desc;
-	GtkBorder         *tmp;
 	GtkBorder         padding;
 #else
 	GtkStyle         *style;
@@ -2364,9 +2363,9 @@ calculate_minimum_height (GtkWidget        *widget,
 #if GTK_CHECK_VERSION(3, 8, 0)
 	gtk_style_context_get (style_context, state,
 				GTK_STYLE_PROPERTY_FONT, &font_desc,
-				GTK_STYLE_PROPERTY_PADDING, &tmp,
+/*				GTK_STYLE_PROPERTY_PADDING, &tmp, */
 				NULL);
-	padding = *tmp;
+	gtk_style_context_get_padding (style_context, state, &padding);
 #else
 	font_desc = gtk_style_context_get_font (style_context, state);
 	gtk_style_context_get_padding (style_context, state, &padding);
