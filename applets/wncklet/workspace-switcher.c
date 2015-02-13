@@ -196,48 +196,6 @@ static void applet_change_orient(MatePanelApplet* applet, MatePanelAppletOrient 
 		gtk_label_set_text(GTK_LABEL(pager->label_row_col), pager->orientation == GTK_ORIENTATION_HORIZONTAL ? _("rows") : _("columns"));
 }
 
-#if GTK_CHECK_VERSION (3, 0, 0)
-static void applet_change_background(MatePanelApplet* applet, MatePanelAppletBackgroundType type, GdkColor* color, cairo_pattern_t *pattern, PagerData* pager)
-#else
-static void applet_change_background(MatePanelApplet* applet, MatePanelAppletBackgroundType type, GdkColor* color, GdkPixmap* pixmap, PagerData* pager)
-#endif
-{
-        /* taken from the TrashApplet */
-        GtkRcStyle *rc_style;
-        GtkStyle *style;
-
-        /* reset style */
-        gtk_widget_set_style (GTK_WIDGET (pager->pager), NULL);
-        rc_style = gtk_rc_style_new ();
-        gtk_widget_modify_style (GTK_WIDGET (pager->pager), rc_style);
-        g_object_unref (rc_style);
-
-#if GTK_CHECK_VERSION (3, 0, 0)
-	wnck_pager_set_shadow_type (WNCK_PAGER (pager->pager),
-		type == PANEL_NO_BACKGROUND ? GTK_SHADOW_NONE : GTK_SHADOW_IN);
-#else
-	switch (type)
-	{
-                case PANEL_COLOR_BACKGROUND:
-                        gtk_widget_modify_bg (GTK_WIDGET (pager->pager), GTK_STATE_NORMAL, color);
-                        break;
-
-                case PANEL_PIXMAP_BACKGROUND:
-                        style = gtk_style_copy (gtk_widget_get_style (GTK_WIDGET (pager->pager)));
-                        if (style->bg_pixmap[GTK_STATE_NORMAL])
-                                g_object_unref (style->bg_pixmap[GTK_STATE_NORMAL]);
-                        style->bg_pixmap[GTK_STATE_NORMAL] = g_object_ref(pixmap);
-                        gtk_widget_set_style (GTK_WIDGET (pager->pager), style);
-                        g_object_unref (style);
-                        break;
-
-                case PANEL_NO_BACKGROUND:
-                default:
-                        break;
-	}
-#endif
-}
-
 static gboolean applet_scroll(MatePanelApplet* applet, GdkEventScroll* event, PagerData* pager)
 {
 	GdkScrollDirection absolute_direction;
@@ -552,7 +510,6 @@ gboolean workspace_switcher_applet_fill(MatePanelApplet* applet)
 	g_signal_connect(G_OBJECT(pager->applet), "unrealize", G_CALLBACK(applet_unrealized), pager);
 	g_signal_connect(G_OBJECT(pager->applet), "change_orient", G_CALLBACK(applet_change_orient), pager);
 	g_signal_connect(G_OBJECT(pager->applet), "scroll-event", G_CALLBACK(applet_scroll), pager);
-	g_signal_connect(G_OBJECT(pager->applet), "change_background", G_CALLBACK(applet_change_background), pager);
 
 	gtk_widget_show(pager->applet);
 
