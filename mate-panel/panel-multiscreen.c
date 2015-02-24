@@ -49,7 +49,7 @@ static gboolean       have_randr  = FALSE;
 static gboolean       have_randr_1_3 = FALSE;
 static guint          reinit_id   = 0;
 
-#ifdef HAVE_RANDR
+#if defined(HAVE_RANDR) && defined(HAVE_X)
 static gboolean
 _panel_multiscreen_output_should_be_first (Display       *xdisplay,
 					   RROutput       output,
@@ -229,6 +229,7 @@ panel_multiscreen_get_randr_monitors_for_screen (GdkScreen     *screen,
 
 	return TRUE;
 #else
+	*monitors_ret = gdk_screen_get_n_monitors (screen);
 	return FALSE;
 #endif
 }
@@ -529,12 +530,6 @@ panel_multiscreen_reinit (void)
 		gtk_widget_queue_resize (l->data);
 
 	g_list_free (toplevels);
-}
-
-int
-panel_multiscreen_screens (void)
-{
-	return screens;
 }
 
 int

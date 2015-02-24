@@ -852,9 +852,6 @@ _mate_panel_applet_frame_applet_broken (MatePanelAppletFrame *frame)
 
 	screen = gtk_widget_get_screen (GTK_WIDGET (frame));
 
-	if (xstuff_is_display_dead ())
-		return;
-
 	if (frame->priv->iid) {
 		MatePanelAppletInfo *info;
 

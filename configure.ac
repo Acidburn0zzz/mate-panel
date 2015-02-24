@@ -104,7 +104,7 @@ dnl pkg-config dependency checks
 PKG_CHECK_MODULES(EGG_SMCLIENT, ice sm gtk+-$GTK_API_VERSION)
 
 PKG_CHECK_MODULES(GMODULE, gmodule-2.0,[GMODULE_ADD="gmodule-2.0"],[GMODULE_ADD=""])
-PKG_CHECK_MODULES(PANEL, $GMODULE_ADD gdk-pixbuf-2.0 >= $GDK_PIXBUF_REQUIRED pango >= $PANGO_REQUIRED gtk+-$GTK_API_VERSION >= $GTK_REQUIRED glib-2.0 >= $GLIB_REQUIRED gio-unix-2.0 >= $GLIB_REQUIRED mate-desktop-$GTK_API_VERSION >= $LIBMATE_DESKTOP_REQUIRED gio-2.0 >= $GLIB_REQUIRED libmate-menu >= $LIBMATE_MENU_REQUIRED libcanberra-gtk$LIBCANBERRA_API_VERSION dbus-glib-1 >= $DBUS_GLIB_REQUIRED)
+PKG_CHECK_MODULES(PANEL, $GMODULE_ADD gdk-pixbuf-2.0 >= $GDK_PIXBUF_REQUIRED pango >= $PANGO_REQUIRED gtk+-$GTK_API_VERSION >= $GTK_REQUIRED glib-2.0 >= $GLIB_REQUIRED gio-unix-2.0 >= $GLIB_REQUIRED mate-desktop-$GTK_API_VERSION >= $LIBMATE_DESKTOP_REQUIRED gio-2.0 >= $GLIB_REQUIRED libmate-menu >= $LIBMATE_MENU_REQUIRED dbus-glib-1 >= $DBUS_GLIB_REQUIRED)
 AC_SUBST(PANEL_CFLAGS)
 AC_SUBST(PANEL_LIBS)
 
@@ -211,7 +211,13 @@ AM_CONDITIONAL(WNCKLET_INPROCESS, test -n "$WNCKLET_COMPILE_INPROCESS")
 gl_CHECK_TYPE_STRUCT_DIRENT_D_TYPE
 
 dnl X development libraries check
+AC_ARG_ENABLE([x],
+	AS_HELP_STRING([--disable-x], [Disable X server support]))
 
+AM_CONDITIONAL([HAVE_X],  [test "x$enable_x" != "xno"])
+if test "x$enable_x" != "xno"; then
+enable_x=yes
+AC_DEFINE(HAVE_X, 1, [Have X server])
 PKG_CHECK_MODULES(X, x11 xau, :, [
   # pkg-config modules not found (only present since X11R7 aka Xorg); use
   # old-style detection
@@ -240,6 +246,10 @@ dnl X RANDR extension
 PKG_CHECK_MODULES(XRANDR, xrandr >= 1.2.0, have_randr=yes, have_randr=no)
 if test "x$have_randr" = "xyes"; then
   AC_DEFINE(HAVE_RANDR, 1, [Have the Xrandr extension library])
+fi
+else
+enable_x=no
+have_randr=no
 fi
 
 dnl Modules dir
@@ -375,6 +385,7 @@ echo "
         Gtk+ version:                  ${GTK_API_VERSION}
         Ubuntu Counter Hack:           ${ENABLE_UBUNTU}
         Applets to build in-process:   ${PANEL_INPROCESS_APPLETS}
+        X server support:              ${enable_x}
         XRandr support:                ${have_randr}
         Build introspection support:   ${found_introspection}
         Build gtk-doc documentation:   ${enable_gtk_doc}

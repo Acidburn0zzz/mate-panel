@@ -146,11 +146,14 @@ launcher_launch (Launcher  *launcher,
 	g_return_if_fail (launcher != NULL);
 	g_return_if_fail (launcher->app_info != NULL);
 
-	if (panel_global_config_get_enable_animations ())
+	if (panel_global_config_get_enable_animations ()) {
+		GdkPixbuf *pixbuf = button_widget_get_pixbuf (BUTTON_WIDGET (widget));
 		xstuff_zoom_animate (widget,
-				     button_widget_get_pixbuf (BUTTON_WIDGET (widget)),
+				     pixbuf,
 				     button_widget_get_orientation (BUTTON_WIDGET (widget)),
 				     NULL);
+		g_object_unref (pixbuf);
+	}
 	if (action == NULL) {
 		type = g_desktop_app_info_get_string (launcher->app_info, G_KEY_FILE_DESKTOP_KEY_TYPE);
 	}
@@ -212,12 +215,15 @@ drag_data_received_cb (GtkWidget        *widget,
 	int      i;
 	GList   *file_list;
 
-	if (panel_global_config_get_enable_animations ())
+	if (panel_global_config_get_enable_animations ()) {
+		GdkPixbuf *pixbuf = button_widget_get_pixbuf (BUTTON_WIDGET (widget));
 		xstuff_zoom_animate (widget,
-				     button_widget_get_pixbuf (BUTTON_WIDGET (widget)),
+				     pixbuf,
 				     button_widget_get_orientation (BUTTON_WIDGET (widget)),
 				     NULL);
-	
+		g_object_unref (pixbuf);
+	}
+
 	file_list = NULL;
 	uris = g_uri_list_extract_uris ((const char *) gtk_selection_data_get_data (selection_data));
 	for (i = 0; uris[i]; i++)

@@ -62,7 +62,6 @@ panel_sources = \
 	panel-bindings.c \
 	panel-layout.c \
 	panel-profile.c \
-	panel-force-quit.c \
 	panel-lockdown.c \
 	panel-addto.c \
 	panel-ditem-editor.c \
@@ -111,7 +110,6 @@ panel_headers = \
 	panel-profile.h \
 	panel-enums-gsettings.h \
 	panel-enums.h \
-	panel-force-quit.h \
 	panel-lockdown.h \
 	panel-addto.h \
 	panel-ditem-editor.h \
@@ -120,6 +118,11 @@ panel_headers = \
 	mate-panel-applet-info.h \
 	panel-reset.h \
 	panel-schemas.h
+
+if HAVE_X
+panel_sources += panel-force-quit.c
+panel_headers += panel-force-quit.h
+endif
 
 mate_panel_SOURCES = \
 	$(panel_sources) \

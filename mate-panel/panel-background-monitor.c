@@ -59,11 +59,9 @@ struct _PanelBackgroundMonitor {
 
 	GdkScreen *screen;
 
-	Window     xwindow;
-	GdkWindow *gdkwindow;
+	GdkWindow *window;
 
-	Atom       xatom;
-	GdkAtom    gdkatom;
+	GdkAtom    atom;
 
 #if GTK_CHECK_VERSION (3, 0, 0)
 	cairo_surface_t *surface;
@@ -99,7 +97,7 @@ panel_background_monitor_finalize (GObject *object)
 	monitor = PANEL_BACKGROUND_MONITOR (object);
 
 	gdk_window_remove_filter (
-		monitor->gdkwindow, panel_background_monitor_xevent_filter, monitor);
+		monitor->window, panel_background_monitor_xevent_filter, monitor);
 	g_signal_handlers_disconnect_by_func (monitor->screen,
 		panel_background_monitor_changed, monitor);
 
@@ -142,11 +140,9 @@ panel_background_monitor_init (PanelBackgroundMonitor *monitor)
 {
 	monitor->screen = NULL;
 
-	monitor->gdkwindow = NULL;
-	monitor->xwindow   = None;
+	monitor->window = NULL;
 
-	monitor->gdkatom = gdk_atom_intern_static_string ("_XROOTPMAP_ID");
-	monitor->xatom   = gdk_x11_atom_to_xatom (monitor->gdkatom);
+	monitor->atom = gdk_atom_intern_static_string ("_XROOTPMAP_ID");
 
 #if GTK_CHECK_VERSION (3, 0, 0)
 	monitor->surface = NULL;
@@ -162,8 +158,8 @@ static void
 panel_background_monitor_connect_to_screen (PanelBackgroundMonitor *monitor,
 					    GdkScreen              *screen)
 {
-	if (monitor->screen != NULL && monitor->gdkwindow != NULL) {
-		gdk_window_remove_filter (monitor->gdkwindow,
+	if (monitor->screen != NULL && monitor->window != NULL) {
+		gdk_window_remove_filter (monitor->window,
 					  panel_background_monitor_xevent_filter,
 					  monitor);
 	}
@@ -172,15 +168,14 @@ panel_background_monitor_connect_to_screen (PanelBackgroundMonitor *monitor,
 	g_signal_connect_swapped (screen, "size-changed",
 	    G_CALLBACK (panel_background_monitor_changed), monitor);
 
-	monitor->gdkwindow = gdk_screen_get_root_window (screen);
-	monitor->xwindow   = GDK_WINDOW_XID (monitor->gdkwindow);
+	monitor->window = gdk_screen_get_root_window (screen);
 
 	gdk_window_add_filter (
-		monitor->gdkwindow, panel_background_monitor_xevent_filter, monitor);
+		monitor->window, panel_background_monitor_xevent_filter, monitor);
 
 	gdk_window_set_events (
-		monitor->gdkwindow,
-		gdk_window_get_events (monitor->gdkwindow) | GDK_PROPERTY_CHANGE_MASK);
+		monitor->window,
+		gdk_window_get_events (monitor->window) | GDK_PROPERTY_CHANGE_MASK);
 }
 
 static PanelBackgroundMonitor *
@@ -254,16 +249,18 @@ panel_background_monitor_xevent_filter (GdkXEvent *xevent,
 					gpointer   data)
 {
 	PanelBackgroundMonitor *monitor;
-	XEvent                 *xev;
 
 	g_return_val_if_fail (PANEL_IS_BACKGROUND_MONITOR (data), GDK_FILTER_CONTINUE);
 
 	monitor = PANEL_BACKGROUND_MONITOR (data);
-	xev     = (XEvent *) xevent;
 
-	if (xev->type == PropertyNotify &&
-	    xev->xproperty.atom == monitor->xatom &&
-	    xev->xproperty.window == monitor->xwindow)
+	if (event->type != GDK_PROPERTY_NOTIFY)
+		return GDK_FILTER_CONTINUE;
+
+	GdkEventProperty *event_property = (GdkEventProperty*)event;
+
+	if (event_property->atom == monitor->atom &&
+	    event_property->window == monitor->window)
 		panel_background_monitor_changed (monitor);
 
 	return GDK_FILTER_CONTINUE;
@@ -279,7 +276,7 @@ panel_background_monitor_setup_pixmap (PanelBackgroundMonitor *monitor)
 	g_assert (monitor->display_grabbed);
 
 	if (!gdk_property_get (
-		monitor->gdkwindow, monitor->gdkatom,
+		monitor->window, monitor->atom,
 		gdk_x11_xatom_to_atom (XA_PIXMAP), 0, 10,
 		FALSE, &prop_type, NULL, NULL, (gpointer) &prop_data))
 		return;
@@ -409,7 +406,7 @@ panel_background_monitor_setup_pixbuf (PanelBackgroundMonitor *monitor)
 	gdk_drawable_get_size(GDK_DRAWABLE(monitor->gdkpixmap), &pwidth, &pheight);
 #endif
 
-	gdk_window_get_geometry (monitor->gdkwindow,
+	gdk_window_get_geometry (monitor->window,
 #if GTK_CHECK_VERSION (3, 0, 0)
 				 NULL, NULL, &rwidth, &rheight);
 #else
@@ -420,7 +417,7 @@ panel_background_monitor_setup_pixbuf (PanelBackgroundMonitor *monitor)
 	monitor->height = MIN (pheight, rheight);
 
 #if !GTK_CHECK_VERSION (3, 0, 0)
-	colormap = gdk_drawable_get_colormap (monitor->gdkwindow);
+	colormap = gdk_drawable_get_colormap (monitor->window);
 #endif
 
 	g_assert (monitor->gdkpixbuf == NULL);

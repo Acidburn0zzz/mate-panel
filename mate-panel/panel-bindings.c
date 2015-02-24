@@ -246,5 +246,5 @@ panel_bindings_get_mouse_button_modifier_keymask (void)
 	if (!initialised)
 		panel_bindings_initialise ();
 
-	return panel_get_real_modifier_mask (mouse_button_modifier_keymask);
+	return mouse_button_modifier_keymask;
 }

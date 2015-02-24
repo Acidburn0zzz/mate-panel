@@ -35,18 +35,22 @@
 #include "panel-globals.h"
 #include "panel-toplevel.h"
 #include "panel-util.h"
+#ifdef HAVE_X
 #include "panel-force-quit.h"
+#endif
 #include "panel-run-dialog.h"
 #include "panel-menu-button.h"
 #include "panel-menu-bar.h"
 
-static Atom atom_mate_panel_action            = None;
-static Atom atom_gnome_panel_action           = None;
-static Atom atom_mate_panel_action_main_menu  = None;
-static Atom atom_mate_panel_action_run_dialog = None;
-static Atom atom_gnome_panel_action_main_menu  = None;
-static Atom atom_gnome_panel_action_run_dialog = None;
-static Atom atom_mate_panel_action_kill_dialog = None;
+static GdkAtom atom_mate_panel_action            = None;
+static GdkAtom atom_gnome_panel_action           = None;
+static GdkAtom atom_mate_panel_action_main_menu  = None;
+static GdkAtom atom_mate_panel_action_run_dialog = None;
+static GdkAtom atom_gnome_panel_action_main_menu  = None;
+static GdkAtom atom_gnome_panel_action_run_dialog = None;
+#ifdef HAVE_X
+static GdkAtom atom_mate_panel_action_kill_dialog = None;
+#endif
 
 static void
 panel_action_protocol_main_menu (GdkScreen *screen,
@@ -87,12 +91,14 @@ panel_action_protocol_run_dialog (GdkScreen *screen,
 	panel_run_dialog_present (screen, activate_time);
 }
 
+#ifdef HAVE_X
 static void
 panel_action_protocol_kill_dialog (GdkScreen *screen,
 				   guint32    activate_time)
 {
 	panel_force_quit (screen, activate_time);
 }
+#endif
 
 static GdkFilterReturn
 panel_action_protocol_filter (GdkXEvent *gdk_xevent,
@@ -101,26 +107,24 @@ panel_action_protocol_filter (GdkXEvent *gdk_xevent,
 {
 	GdkWindow *window;
 	GdkScreen *screen;
-#if GTK_CHECK_VERSION (3, 0, 0)
 	GdkDisplay *display;
-#endif
+
 	XEvent    *xevent = (XEvent *) gdk_xevent;
 
 	if (xevent->type != ClientMessage)
 		return GDK_FILTER_CONTINUE;
 
-	if ((xevent->xclient.message_type != atom_mate_panel_action) &&
-	   (xevent->xclient.message_type != atom_gnome_panel_action))
-		return GDK_FILTER_CONTINUE;
-
-#if GTK_CHECK_VERSION (3, 0, 0)
 	screen = gdk_event_get_screen (event);
 	display = gdk_screen_get_display (screen);
+
+        GdkAtom message_atom = gdk_x11_xatom_to_atom_for_display (display, xevent->xclient.message_type);
+
+	if ((message_atom != atom_mate_panel_action) &&
+	   (message_atom != atom_gnome_panel_action))
+		return GDK_FILTER_CONTINUE;
+
 	window = gdk_x11_window_lookup_for_display (display, xevent->xclient.window);
-#else
-	window = gdk_window_lookup (xevent->xclient.window);
-	screen = gdk_drawable_get_screen (window);
-#endif
+
 	if (!window)
 		return GDK_FILTER_CONTINUE;
 
@@ -129,16 +133,21 @@ panel_action_protocol_filter (GdkXEvent *gdk_xevent,
 		return GDK_FILTER_CONTINUE;
 #endif
 
-	if (xevent->xclient.data.l [0] == atom_mate_panel_action_main_menu)
-		panel_action_protocol_main_menu (screen, xevent->xclient.data.l [1]);
-	else if (xevent->xclient.data.l [0] == atom_mate_panel_action_run_dialog)
-		panel_action_protocol_run_dialog (screen, xevent->xclient.data.l [1]);
-	else if (xevent->xclient.data.l [0] == atom_gnome_panel_action_main_menu)
-		panel_action_protocol_main_menu (screen, xevent->xclient.data.l [1]);
-	else if (xevent->xclient.data.l [0] == atom_gnome_panel_action_run_dialog)
-		panel_action_protocol_run_dialog (screen, xevent->xclient.data.l [1]);
-	else if (xevent->xclient.data.l [0] == atom_mate_panel_action_kill_dialog)
-		panel_action_protocol_kill_dialog (screen, xevent->xclient.data.l [1]);
+	GdkAtom action_atom = gdk_x11_xatom_to_atom_for_display (display, xevent->xclient.data.l [0]);
+	guint32 activation_time = xevent->xclient.data.l [1];
+
+	if (action_atom == atom_mate_panel_action_main_menu)
+		panel_action_protocol_main_menu (screen, activation_time);
+	else if (action_atom == atom_mate_panel_action_run_dialog)
+		panel_action_protocol_run_dialog (screen, activation_time);
+	else if (action_atom == atom_gnome_panel_action_main_menu)
+		panel_action_protocol_main_menu (screen, activation_time);
+	else if (action_atom == atom_gnome_panel_action_run_dialog)
+		panel_action_protocol_run_dialog (screen, activation_time);
+#ifdef HAVE_X
+	else if (action_atom == atom_mate_panel_action_kill_dialog)
+		panel_action_protocol_kill_dialog (screen, activation_time);
+#endif
 	else
 		return GDK_FILTER_CONTINUE;
 
@@ -148,38 +157,15 @@ panel_action_protocol_filter (GdkXEvent *gdk_xevent,
 void
 panel_action_protocol_init (void)
 {
-	GdkDisplay *display;
-
-	display = gdk_display_get_default ();
-
-	atom_mate_panel_action =
-		XInternAtom (GDK_DISPLAY_XDISPLAY (display),
-			     "_MATE_PANEL_ACTION",
-			     FALSE);
-	atom_gnome_panel_action =
-		XInternAtom (GDK_DISPLAY_XDISPLAY (display),
-			     "_GNOME_PANEL_ACTION",
-			     FALSE);
-	atom_mate_panel_action_main_menu =
-		XInternAtom (GDK_DISPLAY_XDISPLAY (display),
-			     "_MATE_PANEL_ACTION_MAIN_MENU",
-			     FALSE);
-	atom_mate_panel_action_run_dialog =
-		XInternAtom (GDK_DISPLAY_XDISPLAY (display),
-			     "_MATE_PANEL_ACTION_RUN_DIALOG",
-			     FALSE);
-	atom_gnome_panel_action_main_menu =
-		XInternAtom (GDK_DISPLAY_XDISPLAY (display),
-			     "_GNOME_PANEL_ACTION_MAIN_MENU",
-			     FALSE);
-	atom_gnome_panel_action_run_dialog =
-		XInternAtom (GDK_DISPLAY_XDISPLAY (display),
-			     "_GNOME_PANEL_ACTION_RUN_DIALOG",
-			     FALSE);
-	atom_mate_panel_action_kill_dialog =
-		XInternAtom (GDK_DISPLAY_XDISPLAY (display),
-			     "_MATE_PANEL_ACTION_KILL_DIALOG",
-			     FALSE);
+	atom_mate_panel_action = gdk_atom_intern_static_string ("_MATE_PANEL_ACTION");
+	atom_gnome_panel_action = gdk_atom_intern_static_string ("_GNOME_PANEL_ACTION");
+	atom_mate_panel_action_main_menu = gdk_atom_intern_static_string ("_MATE_PANEL_ACTION_MAIN_MENU");
+	atom_mate_panel_action_run_dialog = gdk_atom_intern_static_string("_MATE_PANEL_ACTION_RUN_DIALOG");
+	atom_gnome_panel_action_main_menu = gdk_atom_intern_static_string ("_GNOME_PANEL_ACTION_MAIN_MENU");
+	atom_gnome_panel_action_run_dialog = gdk_atom_intern_static_string ("_GNOME_PANEL_ACTION_RUN_DIALOG");
+#ifdef HAVE_X
+	atom_mate_panel_action_kill_dialog = gdk_atom_intern_static_string ("_MATE_PANEL_ACTION_KILL_DIALOG");
+#endif
 
 	/* We'll filter event sent on non-root windows later */
 	gdk_window_add_filter (NULL, panel_action_protocol_filter, NULL);

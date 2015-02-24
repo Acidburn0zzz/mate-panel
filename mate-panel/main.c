@@ -32,7 +32,6 @@
 #include "panel-icon-names.h"
 #include "panel-reset.h"
 #include "panel-run-dialog.h"
-#include "xstuff.h"
 
 #include "nothing.cP"
 
@@ -159,8 +158,6 @@ main (int argc, char **argv)
 	g_slist_foreach (panels,
 	                 (GFunc)panel_widget_add_forbidden,
 	                 NULL);
-
-	xstuff_init ();
 
 	/* Flush to make sure our struts are seen by everyone starting
 	 * immediate after (eg, the caja desktop). */

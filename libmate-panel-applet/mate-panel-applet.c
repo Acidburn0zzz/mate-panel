@@ -551,6 +551,7 @@ void
 mate_panel_applet_request_focus (MatePanelApplet	 *applet,
 			    guint32	  timestamp)
 {
+#ifdef HAVE_X
 	GdkScreen  *screen;
 	GdkWindow  *root;
 	GdkDisplay *display;
@@ -590,6 +591,7 @@ mate_panel_applet_request_focus (MatePanelApplet	 *applet,
 		    xroot, False,
 		    SubstructureRedirectMask | SubstructureNotifyMask,
 		    &xev);
+#endif
 }
 
 static GtkAction *
@@ -919,6 +921,7 @@ static gboolean
 mate_panel_applet_button_event (GtkWidget      *widget,
 			   GdkEventButton *event)
 {
+#ifdef HAVE_X
 	GdkWindow *window;
 	GdkWindow *socket_window;
 	XEvent     xevent;
@@ -976,7 +979,7 @@ mate_panel_applet_button_event (GtkWidget      *widget,
 #else
 	gdk_error_trap_pop ();
 #endif
-
+#endif
 	return TRUE;
 }
 
@@ -1378,6 +1381,7 @@ mate_panel_applet_create_foreign_surface_for_display (GdkDisplay *display,
                                                       GdkVisual  *visual,
                                                       Window      xid)
 {
+#ifdef HAVE_X
         Window window;
         gint x, y;
         guint width, height, border, depth;
@@ -1389,6 +1393,9 @@ mate_panel_applet_create_foreign_surface_for_display (GdkDisplay *display,
         return cairo_xlib_surface_create (GDK_DISPLAY_XDISPLAY (display),
                                           xid, gdk_x11_visual_get_xvisual (visual),
                                           width, height);
+#else
+	return NULL;
+#endif
 }
 
 static cairo_pattern_t *
@@ -2431,6 +2438,8 @@ static void mate_panel_applet_factory_main_finalized(gpointer data, GObject* obj
 	}
 }
 
+#ifdef HAVE_X
+
 static int (*_x_error_func) (Display *, XErrorEvent *);
 
 static int
@@ -2479,6 +2488,7 @@ _mate_panel_applet_setup_x_error_handler (void)
 
 	_x_error_func = XSetErrorHandler (_x_error_handler);
 }
+#endif
 
 /**
  * mate_panel_applet_factory_main:
@@ -2499,10 +2509,12 @@ int mate_panel_applet_factory_main(const gchar* factory_id, gboolean out_process
 	g_return_val_if_fail(callback != NULL, 1);
 	g_assert(g_type_is_a(applet_type, PANEL_TYPE_APPLET));
 
+#ifdef HAVE_X
 	if (out_process)
 	{
 		_mate_panel_applet_setup_x_error_handler();
 	}
+#endif
 
 	closure = g_cclosure_new(G_CALLBACK(callback), user_data, NULL);
 	factory = mate_panel_applet_factory_new(factory_id, applet_type, closure);
@@ -2531,22 +2543,8 @@ mate_panel_applet_set_background_widget (MatePanelApplet *applet,
 {
 	applet->priv->background_widget = widget;
 
-#if GTK_CHECK_VERSION (3, 0, 0)
-	if (widget && gtk_widget_get_realized (widget)) {
-#else
 	if (widget) {
-#endif
 		MatePanelAppletBackgroundType  type;
-#if GTK_CHECK_VERSION (3, 0, 0)
-		GdkRGBA                    color;
-		cairo_pattern_t           *pattern;
-		type = mate_panel_applet_get_background (applet, &color, &pattern);
-		mate_panel_applet_update_background_for_widget (widget, type,
-							   &color, pattern);
-
-		if (type == PANEL_PIXMAP_BACKGROUND)
-			cairo_pattern_destroy (pattern);
-#else
 		GdkColor                   color;
 		GdkPixmap                 *pixmap;
 		type = mate_panel_applet_get_background (applet, &color, &pixmap);
@@ -2554,7 +2552,6 @@ mate_panel_applet_set_background_widget (MatePanelApplet *applet,
 							   &color, pixmap);
 		if (type == PANEL_PIXMAP_BACKGROUND)
 			g_object_unref (pixmap);
-#endif
 	}
 }
 #endif

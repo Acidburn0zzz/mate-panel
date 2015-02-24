@@ -3067,7 +3067,7 @@ panel_toplevel_realize (GtkWidget *widget)
 	window = gtk_widget_get_window (widget);
 
 	panel_struts_set_window_hint (toplevel);
-	panel_xutils_set_window_type (window, PANEL_XUTILS_TYPE_DOCK);
+	gdk_window_set_type_hint (window, GDK_WINDOW_TYPE_HINT_DOCK);
 
 	gdk_window_set_group (window, window);
 	gdk_window_set_geometry_hints (window, NULL, GDK_HINT_POS);
@@ -3582,8 +3582,7 @@ panel_toplevel_button_press_event (GtkWidget      *widget,
 	/* Get the mouse-button modifier from marco so that only intentional
 	 * moves are considered. We don't this for non-expanded panels since we
 	 * only have the handles that the user can grab. */
-	if ((toplevel->priv->expand || toplevel->priv->attached) &&
-	    (event->state & GDK_MODIFIER_MASK) != panel_bindings_get_mouse_button_modifier_keymask ())
+	if ((toplevel->priv->expand || toplevel->priv->attached))
 		return FALSE;
 
 	gdk_window_get_user_data (event->window, (gpointer)&event_widget);
