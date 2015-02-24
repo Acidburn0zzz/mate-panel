@@ -3070,7 +3070,6 @@ panel_toplevel_realize (GtkWidget *widget)
 	gdk_window_set_type_hint (window, GDK_WINDOW_TYPE_HINT_DOCK);
 
 	gdk_window_set_group (window, window);
-	gdk_window_set_geometry_hints (window, NULL, GDK_HINT_POS);
 
 	panel_toplevel_initially_hide (toplevel);
 
