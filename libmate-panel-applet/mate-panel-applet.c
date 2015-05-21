@@ -1990,16 +1990,16 @@ mate_panel_applet_apply_transparent_background(GtkWidget* widget, gboolean trans
 	gtk_widget_reset_style(widget);
 
 	if (!transparent) {
-		gtk_style_context_remove_class(context,"-mate-custom-panel-background");
+		gtk_style_context_remove_class(context,"mate-custom-panel-background");
 	} else {
 		provider = gtk_css_provider_new ();
 		gtk_css_provider_load_from_data (provider,
-						".-mate-custom-panel-background{\n"
+						".mate-custom-panel-background{\n"
 						" background-color: rgba (0, 0, 0, 0);\n"
 						" background-image: none;\n"
 						"}",
 						-1, NULL);
-		gtk_style_context_add_class (context, "-mate-custom-panel-background");
+		gtk_style_context_add_class (context, "mate-custom-panel-background");
 		gtk_style_context_add_provider (context,
 						GTK_STYLE_PROVIDER (provider),
 						GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
