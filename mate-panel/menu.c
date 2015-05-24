@@ -1485,7 +1485,7 @@ panel_load_menu_image_deferred (GtkWidget   *image_menu_item,
 	}
 
 	gtk_image_set_from_gicon (GTK_IMAGE(image), icon, icon_size);
-	g_object_unref (icon);
+	g_clear_object (&icon);
 
 	gtk_widget_show (image);
 

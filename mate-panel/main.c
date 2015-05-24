@@ -33,8 +33,6 @@
 #include "panel-reset.h"
 #include "panel-run-dialog.h"
 
-#include "nothing.cP"
-
 /* globals */
 GSList *panels = NULL;
 GSList *panel_list = NULL;

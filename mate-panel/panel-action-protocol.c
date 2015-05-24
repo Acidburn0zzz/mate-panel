@@ -114,8 +114,7 @@ panel_action_protocol_filter (GdkXEvent *gdk_xevent,
 	if (xevent->type != ClientMessage)
 		return GDK_FILTER_CONTINUE;
 
-	screen = gdk_event_get_screen (event);
-	display = gdk_screen_get_display (screen);
+	display = gdk_x11_lookup_xdisplay (xevent->xclient.display);
 
         GdkAtom message_atom = gdk_x11_xatom_to_atom_for_display (display, xevent->xclient.message_type);
 
@@ -128,10 +127,7 @@ panel_action_protocol_filter (GdkXEvent *gdk_xevent,
 	if (!window)
 		return GDK_FILTER_CONTINUE;
 
-#if GTK_CHECK_VERSION (3, 0, 0)
-	if (window != gdk_screen_get_root_window (screen))
-		return GDK_FILTER_CONTINUE;
-#endif
+	screen = gdk_window_get_screen (window);
 
 	GdkAtom action_atom = gdk_x11_xatom_to_atom_for_display (display, xevent->xclient.data.l [0]);
 	guint32 activation_time = xevent->xclient.data.l [1];

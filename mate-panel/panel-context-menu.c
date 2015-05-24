@@ -39,7 +39,6 @@
 #include <libpanel-util/panel-error.h>
 #include <libpanel-util/panel-show.h>
 
-#include "nothing.h"
 #include "panel-util.h"
 #include "panel.h"
 #include "menu.h"
@@ -72,10 +71,6 @@ panel_context_menu_check_for_screen (GtkWidget *w,
 		times++;
 		if (times == 3) {
 			times = 0;
-#if !GTK_CHECK_VERSION (3, 0, 0)
-			/* FIXME re-add once GTK3 support is fixed */
-			start_screen_check ();
-#endif
 		}
 	}
 	return FALSE;

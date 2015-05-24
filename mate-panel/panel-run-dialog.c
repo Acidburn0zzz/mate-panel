@@ -51,7 +51,6 @@
 #include <libpanel-util/panel-keyfile.h>
 #include <libpanel-util/panel-show.h>
 
-#include "nothing.h"
 #include "panel-util.h"
 #include "panel-globals.h"
 #include "panel-enums.h"
@@ -439,24 +438,6 @@ panel_run_dialog_execute (PanelRunDialog *dialog)
 		g_free (command);
 		return;
 	}
-
-	/* evil eggies, do not translate! */
-#if !GTK_CHECK_VERSION (3, 0, 0)
-	/* FIXME re-add once GTK3 support is fixed */
-	if (!strcmp (command, "free the fish")) {
-		start_screen_check ();
-
-		g_free (command);
-		gtk_widget_destroy (dialog->run_dialog);
-		return;
-	} else if (!strcmp (command, "gegls from outer space")) {
-		start_geginv ();
-
-		g_free (command);
-		gtk_widget_destroy (dialog->run_dialog);
-		return;
-	}
-#endif
 
 	error = NULL;
 	disk = g_locale_from_utf8 (command, -1, NULL, NULL, &error);
@@ -907,7 +888,7 @@ panel_run_dialog_add_items_idle (PanelRunDialog *dialog)
 				    COLUMN_VISIBLE,   TRUE,
 				    -1);
 
-		g_object_unref (gicon);
+		g_clear_object (&gicon);
 
 		matemenu_tree_item_unref (entry);
 	}
