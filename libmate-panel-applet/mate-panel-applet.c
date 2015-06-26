@@ -1661,8 +1661,6 @@ mate_panel_applet_set_background_string (MatePanelApplet *applet,
 	g_object_notify (G_OBJECT (applet), "background");
 }
 
-
-
 #if !GTK_CHECK_VERSION (3, 0, 0)
 static void
 mate_panel_applet_update_background_for_widget (GtkWidget                 *widget,
@@ -1697,7 +1695,6 @@ mate_panel_applet_update_background_for_widget (GtkWidget                 *widge
 		g_assert_not_reached ();
 		break;
 	}
-
 }
 #endif
 
