@@ -683,18 +683,18 @@ drag_end_menu_cb (GtkWidget *widget, GdkDragContext     *context)
 
   if (xgrab_shell && !gtk_menu_get_tearoff_state (GTK_MENU(xgrab_shell)))
     {
+      GdkDisplay *display;
 #if GTK_CHECK_VERSION (3, 0, 0)
       gboolean status;
-      GdkDisplay *display;
       GdkDevice *pointer;
       GdkDevice *keyboard;
       GdkDeviceManager *device_manager;
 #endif
       GdkWindow *window = gtk_widget_get_window (xgrab_shell);
-      GdkCursor *cursor = gdk_cursor_new (GDK_ARROW);
+      display = gdk_window_get_display (window);
+      GdkCursor *cursor = gdk_cursor_new_for_display (display, GDK_ARROW);
 
 #if GTK_CHECK_VERSION (3, 0, 0)
-      display = gdk_window_get_display (window);
       device_manager = gdk_display_get_device_manager (display);
       pointer = gdk_device_manager_get_client_pointer (device_manager);
       keyboard = gdk_device_get_associated_device (pointer);
