@@ -3311,7 +3311,6 @@ static gboolean panel_toplevel_expose(GtkWidget* widget, GdkEventExpose* event)
 	PanelToplevel*   toplevel = (PanelToplevel*) widget;
 	PanelFrameEdge   edges;
 	gboolean         retval = FALSE;
-	GdkWindow       *window;
 #if GTK_CHECK_VERSION (3, 0, 0)
 	int              awidth;
 	int              aheight;
@@ -3319,6 +3318,7 @@ static gboolean panel_toplevel_expose(GtkWidget* widget, GdkEventExpose* event)
 	GtkStateFlags    state;
 	GtkBorder        padding;
 #else
+	GdkWindow       *window;
 	GtkStyle         *style;
 	GtkStateType      state;
 	GtkAllocation     allocation;
@@ -3348,7 +3348,6 @@ static gboolean panel_toplevel_expose(GtkWidget* widget, GdkEventExpose* event)
 		return retval;
 
 #if GTK_CHECK_VERSION (3, 0, 0)
-	window = gtk_widget_get_window (widget);
 	state = gtk_widget_get_state_flags (widget);
 	awidth = gtk_widget_get_allocated_width (widget);
 	aheight = gtk_widget_get_allocated_height (widget);
@@ -3371,7 +3370,7 @@ static gboolean panel_toplevel_expose(GtkWidget* widget, GdkEventExpose* event)
 #if GTK_CHECK_VERSION (3, 0, 0)
 		x = 0;
 		y = 0;
-		height = height;
+		height = aheight;
 #else
 		int xthickness, ythickness;
 		x      = allocation.x;
