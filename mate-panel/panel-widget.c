@@ -78,11 +78,7 @@ static void panel_widget_cadd           (GtkContainer     *container,
 					 GtkWidget        *widget);
 static void panel_widget_cremove        (GtkContainer     *container,
 					 GtkWidget        *widget);
-#if GTK_CHECK_VERSION (3, 0, 0)
 static void panel_widget_dispose        (GObject *obj);
-#else
-static void panel_widget_destroy        (GtkObject        *obj);
-#endif
 static void panel_widget_finalize       (GObject          *obj);
 static void panel_widget_realize        (GtkWidget        *widget);
 static void panel_widget_unrealize      (GtkWidget        *panel);
@@ -154,7 +150,7 @@ add_tab_bindings (GtkBindingSet    *binding_set,
 	gtk_binding_entry_add_signal (binding_set, GDK_KEY_Tab, modifiers,
 				      "tab_move", 1,
 				      G_TYPE_BOOLEAN, next);
-  	gtk_binding_entry_add_signal (binding_set, GDK_KEY_KP_Tab, modifiers,
+	gtk_binding_entry_add_signal (binding_set, GDK_KEY_KP_Tab, modifiers,
 				      "tab_move", 1,
 				      G_TYPE_BOOLEAN, next);
 }
@@ -258,7 +254,7 @@ remove_tab_bindings (GtkBindingSet    *binding_set,
 		     gboolean          next)
 {
 	gtk_binding_entry_remove (binding_set, GDK_KEY_Tab, modifiers);
-  	gtk_binding_entry_remove (binding_set, GDK_KEY_KP_Tab, modifiers);
+	gtk_binding_entry_remove (binding_set, GDK_KEY_KP_Tab, modifiers);
 }
 
 static void
@@ -300,12 +296,7 @@ remove_all_move_bindings (PanelWidget *panel)
 static void
 panel_widget_class_init (PanelWidgetClass *class)
 {
-#if GTK_CHECK_VERSION (3, 0, 0)
 	GObjectClass *object_class = (GObjectClass*) class;
-#else
-	GtkObjectClass *object_class = (GtkObjectClass*) class;
-	GObjectClass *gobject_class = (GObjectClass*) class;
-#endif
 	GtkWidgetClass *widget_class = (GtkWidgetClass*) class;
 	GtkContainerClass *container_class = (GtkContainerClass*) class;
 
@@ -437,13 +428,8 @@ panel_widget_class_init (PanelWidgetClass *class)
 	class->tab_move = panel_widget_tab_move;
 	class->end_move = panel_widget_end_move;
 
-#if GTK_CHECK_VERSION (3, 0, 0)
 	object_class->dispose = panel_widget_dispose;
 	object_class->finalize = panel_widget_finalize;
-#else
-	object_class->destroy = panel_widget_destroy;
-	gobject_class->finalize = panel_widget_finalize;
-#endif
 
 #if GTK_CHECK_VERSION (3, 0, 0)
 	widget_class->get_preferred_width = panel_widget_get_preferred_width;
@@ -1839,11 +1825,7 @@ panel_widget_destroy_open_dialogs (PanelWidget *panel_widget)
 }
 
 static void
-#if GTK_CHECK_VERSION (3, 0, 0)
 panel_widget_dispose (GObject *obj)
-#else
-panel_widget_destroy (GtkObject *obj)
-#endif
 {
 	PanelWidget *panel;
 
@@ -1864,12 +1846,7 @@ panel_widget_destroy (GtkObject *obj)
 		panel->master_widget = NULL;
 	}
 
-#if GTK_CHECK_VERSION (3, 0, 0)
 	G_OBJECT_CLASS (panel_widget_parent_class)->dispose (obj);
-#else
-	if (GTK_OBJECT_CLASS (panel_widget_parent_class)->destroy)
-		GTK_OBJECT_CLASS (panel_widget_parent_class)->destroy (obj);
-#endif
 }
 
 static void
@@ -2527,11 +2504,7 @@ panel_widget_applet_key_press_event (GtkWidget   *widget,
 	if (!mate_panel_applet_in_drag)
 		return FALSE;
 
-#if GTK_CHECK_VERSION (3, 0, 0)
 	return gtk_bindings_activate (G_OBJECT (panel),
-#else
-	return gtk_bindings_activate (GTK_OBJECT (panel),
-#endif
 				      ((GdkEventKey *)event)->keyval, 
 				      ((GdkEventKey *)event)->state);	
 }

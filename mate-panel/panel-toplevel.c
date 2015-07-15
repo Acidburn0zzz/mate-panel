@@ -34,7 +34,6 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 #include <glib/gi18n.h>
-#include <gtk/gtkcontainer.h>
 
 #include "panel-profile.h"
 #include "panel-frame.h"
@@ -1518,9 +1517,7 @@ void panel_toplevel_update_edges(PanelToplevel* toplevel)
 	PanelFrameEdge   edges;
 	PanelFrameEdge   inner_edges;
 	PanelFrameEdge   outer_edges;
-#if !GTK_CHECK_VERSION (3, 0, 0)
 	PanelBackground *background;
-#endif
 	int              monitor_width, monitor_height;
 	int              width, height;
 	gboolean         inner_frame = FALSE;
@@ -1535,9 +1532,7 @@ void panel_toplevel_update_edges(PanelToplevel* toplevel)
 
 	edges = PANEL_EDGE_NONE;
 
-#if !GTK_CHECK_VERSION (3, 0, 0)
 	background = &toplevel->priv->panel_widget->background;
-#endif
 
 
 	/* We don't want any bevels with a color/image background */
@@ -2360,21 +2355,13 @@ calculate_minimum_height (GtkWidget        *widget,
 #if GTK_CHECK_VERSION (3, 0, 0)
 	state = gtk_widget_get_state_flags (widget);
 	style_context = gtk_widget_get_style_context (widget);
-#if GTK_CHECK_VERSION(3, 8, 0)
-	gtk_style_context_get (style_context, state,
-				GTK_STYLE_PROPERTY_FONT, &font_desc,
-/*				GTK_STYLE_PROPERTY_PADDING, &tmp, */
-				NULL);
-	gtk_style_context_get_padding (style_context, state, &padding);
-#else
 	font_desc = gtk_style_context_get_font (style_context, state);
-	gtk_style_context_get_padding (style_context, state, &padding);
-#endif
 
 	pango_context = gtk_widget_get_pango_context (widget);
 	metrics = pango_context_get_metrics (pango_context,
 					     font_desc,
 					     pango_context_get_language (pango_context));
+	gtk_style_context_get_padding (style_context, state, &padding);
 #else
 	style = gtk_widget_get_style (widget);
 
@@ -3060,6 +3047,7 @@ panel_toplevel_realize (GtkWidget *widget)
 
 	gtk_window_set_decorated (GTK_WINDOW (widget), FALSE);
 	gtk_window_stick (GTK_WINDOW (widget));
+	gtk_window_set_type_hint (GTK_WINDOW (widget), GDK_WINDOW_TYPE_HINT_DOCK);
 
 	if (GTK_WIDGET_CLASS (panel_toplevel_parent_class)->realize)
 		GTK_WIDGET_CLASS (panel_toplevel_parent_class)->realize (widget);
@@ -3067,9 +3055,9 @@ panel_toplevel_realize (GtkWidget *widget)
 	window = gtk_widget_get_window (widget);
 
 	panel_struts_set_window_hint (toplevel);
-	gdk_window_set_type_hint (window, GDK_WINDOW_TYPE_HINT_DOCK);
 
 	gdk_window_set_group (window, window);
+	gdk_window_set_geometry_hints (window, NULL, GDK_HINT_POS);
 
 	panel_toplevel_initially_hide (toplevel);
 
@@ -3102,11 +3090,7 @@ panel_toplevel_unrealize (GtkWidget *widget)
 }
 
 static void
-#if GTK_CHECK_VERSION (3, 0, 0)
 panel_toplevel_dispose (GObject *widget)
-#else
-panel_toplevel_destroy (GtkObject *widget)
-#endif
 {
 	PanelToplevel *toplevel = (PanelToplevel *) widget;
 
@@ -3120,12 +3104,7 @@ panel_toplevel_destroy (GtkObject *widget)
 
 	panel_toplevel_disconnect_timeouts (toplevel);
 
-#if GTK_CHECK_VERSION (3, 0, 0)
 	G_OBJECT_CLASS (panel_toplevel_parent_class)->dispose (widget);
-#else
-	if (GTK_OBJECT_CLASS (panel_toplevel_parent_class)->destroy)
-		GTK_OBJECT_CLASS (panel_toplevel_parent_class)->destroy (widget);
-#endif
 }
 
 static void
@@ -3332,6 +3311,7 @@ static gboolean panel_toplevel_expose(GtkWidget* widget, GdkEventExpose* event)
 	PanelToplevel*   toplevel = (PanelToplevel*) widget;
 	PanelFrameEdge   edges;
 	gboolean         retval = FALSE;
+	GdkWindow       *window;
 #if GTK_CHECK_VERSION (3, 0, 0)
 	int              awidth;
 	int              aheight;
@@ -3339,7 +3319,6 @@ static gboolean panel_toplevel_expose(GtkWidget* widget, GdkEventExpose* event)
 	GtkStateFlags    state;
 	GtkBorder        padding;
 #else
-	GdkWindow        *window;
 	GtkStyle         *style;
 	GtkStateType      state;
 	GtkAllocation     allocation;
@@ -3369,6 +3348,7 @@ static gboolean panel_toplevel_expose(GtkWidget* widget, GdkEventExpose* event)
 		return retval;
 
 #if GTK_CHECK_VERSION (3, 0, 0)
+	window = gtk_widget_get_window (widget);
 	state = gtk_widget_get_state_flags (widget);
 	awidth = gtk_widget_get_allocated_width (widget);
 	aheight = gtk_widget_get_allocated_height (widget);
@@ -3391,7 +3371,7 @@ static gboolean panel_toplevel_expose(GtkWidget* widget, GdkEventExpose* event)
 #if GTK_CHECK_VERSION (3, 0, 0)
 		x = 0;
 		y = 0;
-		height = aheight;
+		height = height;
 #else
 		int xthickness, ythickness;
 		x      = allocation.x;
@@ -3581,7 +3561,8 @@ panel_toplevel_button_press_event (GtkWidget      *widget,
 	/* Get the mouse-button modifier from marco so that only intentional
 	 * moves are considered. We don't this for non-expanded panels since we
 	 * only have the handles that the user can grab. */
-	if ((toplevel->priv->expand || toplevel->priv->attached))
+	if ((toplevel->priv->expand || toplevel->priv->attached) &&
+	    (event->state & GDK_MODIFIER_MASK) != panel_bindings_get_mouse_button_modifier_keymask ())
 		return FALSE;
 
 	gdk_window_get_user_data (event->window, (gpointer)&event_widget);
@@ -3785,11 +3766,7 @@ panel_toplevel_start_animation (PanelToplevel *toplevel)
 	deltax = toplevel->priv->animation_end_x - cur_x;
 	deltay = toplevel->priv->animation_end_y - cur_y;
 
-#if GTK_CHECK_VERSION (3, 0, 0)
-	gtk_widget_get_preferred_size (GTK_WIDGET (toplevel), &requisition, NULL);
-#else
 	gtk_widget_get_requisition (GTK_WIDGET (toplevel), &requisition);
-#endif
 
 	if (toplevel->priv->animation_end_width != -1)
 		deltaw = toplevel->priv->animation_end_width - requisition.width;
@@ -3808,6 +3785,9 @@ panel_toplevel_start_animation (PanelToplevel *toplevel)
 
 	if (toplevel->priv->attached) {
 		/* Re-map unmapped attached toplevels */
+		if (!gtk_widget_get_visible (GTK_WIDGET (toplevel)))
+			gtk_widget_set_visible (GTK_WIDGET (toplevel), TRUE);
+
 		if (!gtk_widget_get_mapped (GTK_WIDGET (toplevel)))
 			gtk_widget_map (GTK_WIDGET (toplevel));
 
@@ -4431,9 +4411,6 @@ static void
 panel_toplevel_class_init (PanelToplevelClass *klass)
 {
 	GObjectClass      *gobject_class   = (GObjectClass      *) klass;
-#if !GTK_CHECK_VERSION (3, 0, 0)
-	GtkObjectClass    *gtkobject_class = (GtkObjectClass    *) klass;
-#endif
 	GtkWidgetClass    *widget_class    = (GtkWidgetClass    *) klass;
 	GtkContainerClass *container_class = (GtkContainerClass *) klass;
 	GtkBindingSet     *binding_set;
@@ -4445,11 +4422,7 @@ panel_toplevel_class_init (PanelToplevelClass *klass)
         gobject_class->get_property = panel_toplevel_get_property;
 	gobject_class->finalize     = panel_toplevel_finalize;
 
-#if GTK_CHECK_VERSION (3, 0, 0)
 	gobject_class->dispose = panel_toplevel_dispose;
-#else
-	gtkobject_class->destroy = panel_toplevel_destroy;
-#endif
 
 	widget_class->realize              = panel_toplevel_realize;
 	widget_class->unrealize            = panel_toplevel_unrealize;
@@ -4887,7 +4860,7 @@ panel_toplevel_init (PanelToplevel *toplevel)
 	 * We need to add a --enable-ubuntu for this.
 	 * Now, it is also default in GTK3.
 	 */
-#if defined(UBUNTU) || (GTK_CHECK_VERSION (3, 0, 0) && !GTK_CHECK_VERSION(3, 14, 0))
+#if defined(UBUNTU) || GTK_CHECK_VERSION (3, 0, 0)
 	gtk_window_set_has_resize_grip(&toplevel->window_instance, FALSE);
 #endif
 
