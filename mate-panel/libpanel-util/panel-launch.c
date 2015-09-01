@@ -110,8 +110,9 @@ panel_app_info_launch_uris (GAppInfo   *appinfo,
 	g_return_val_if_fail (GDK_IS_SCREEN (screen), FALSE);
 	g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
 
-#if GTK_CHECK_VERSION (3, 0, 0)
-	context = gdk_display_get_app_launch_context (gdk_screen_get_display(screen));
+#if GTK_CHECK_VERSION(3, 0, 0)
+	GdkDisplay *display = gdk_display_get_default ();
+	context = gdk_display_get_app_launch_context (display);
 #else
 	context = gdk_app_launch_context_new ();
 #endif

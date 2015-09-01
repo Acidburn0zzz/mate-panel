@@ -23,10 +23,8 @@ MATE_MAINTAINER_MODE_DEFINES
 
 IT_PROG_INTLTOOL([0.40.0])
 
-AC_ISC_POSIX
 AC_PROG_CC
 AC_STDC_HEADERS
-AC_LIBTOOL_WIN32_DLL
 AC_PROG_LIBTOOL
 #AC_PROG_SED available in 2.59b
 AM_PROG_CC_C_O
@@ -243,7 +241,7 @@ AC_SUBST(X_LIBS)
 
 dnl X RANDR extension
 
-PKG_CHECK_MODULES(XRANDR, xrandr >= 1.2.0, have_randr=yes, have_randr=no)
+PKG_CHECK_MODULES(XRANDR, xrandr >= 1.3.0, have_randr=yes, have_randr=no)
 if test "x$have_randr" = "xyes"; then
   AC_DEFINE(HAVE_RANDR, 1, [Have the Xrandr extension library])
 fi

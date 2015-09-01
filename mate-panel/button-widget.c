@@ -234,22 +234,12 @@ button_widget_reload_pixbuf (ButtonWidget *button)
 					 &error);
 		if (error) {
 			//FIXME: this is not rendered at button->priv->size
-#if GTK_CHECK_VERSION (3, 10, 0)
-			button->priv->pixbuf =
-				gtk_icon_theme_load_icon (gtk_icon_theme_get_default(),
-							"image-missing",
-							(GtkIconSize) -1, 0, NULL);
-#elif GTK_CHECK_VERSION (3, 0, 0)
-			button->priv->pixbuf =
-				gtk_widget_render_icon_pixbuf (GTK_WIDGET(button),
-							GTK_STOCK_MISSING_IMAGE,
-							(GtkIconSize) -1);
-#else
-			button->priv->pixbuf =
-				gtk_widget_render_icon (GTK_WIDGET (button),
-							GTK_STOCK_MISSING_IMAGE,
-							(GtkIconSize) -1, NULL);
-#endif
+			GtkIconTheme *icon_theme = gtk_icon_theme_get_default();
+			button->priv->pixbuf = gtk_icon_theme_load_icon (icon_theme,
+							       "image-missing",
+							       GTK_ICON_SIZE_BUTTON,
+							       GTK_ICON_LOOKUP_FORCE_SVG | GTK_ICON_LOOKUP_USE_BUILTIN,
+							       NULL);
 			g_free (error);
 		}
 
@@ -667,9 +657,7 @@ button_widget_get_preferred_width (GtkWidget *widget,
 {
 	ButtonWidget *button_widget = BUTTON_WIDGET (widget);
 
-	gint width = button_widget->priv->pixbuf ? gdk_pixbuf_get_width  (button_widget->priv->pixbuf): 0;
-
-	*minimal_width = *natural_width = width;
+	*minimal_width = *natural_width = gdk_pixbuf_get_width  (button_widget->priv->pixbuf);
 }
 
 static void
@@ -679,9 +667,7 @@ button_widget_get_preferred_height (GtkWidget *widget,
 {
 	ButtonWidget *button_widget = BUTTON_WIDGET (widget);
 
-	gint height = button_widget->priv->pixbuf ? gdk_pixbuf_get_height (button_widget->priv->pixbuf): 0;
-
-	*minimal_height = *natural_height = height;
+	*minimal_height = *natural_height = gdk_pixbuf_get_height (button_widget->priv->pixbuf);
 }
 #else
 static void

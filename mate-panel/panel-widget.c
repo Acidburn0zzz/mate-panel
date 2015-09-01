@@ -2070,6 +2070,9 @@ panel_widget_applet_drag_end (PanelWidget *panel)
 int
 panel_widget_get_cursorloc (PanelWidget *panel)
 {
+#if GTK_CHECK_VERSION(3, 0, 0)
+	GdkDevice      *device;
+#endif
 	int x, y;
 	gboolean rtl;
 
@@ -2077,7 +2080,7 @@ panel_widget_get_cursorloc (PanelWidget *panel)
 
 #if GTK_CHECK_VERSION (3, 0, 0)
 	GdkDeviceManager *device_manager = gdk_display_get_device_manager (gtk_widget_get_display (GTK_WIDGET(panel)));
-	GdkDevice *device = gdk_device_manager_get_client_pointer (device_manager);
+	device = gdk_device_manager_get_client_pointer (device_manager);
 	gdk_window_get_device_position (gtk_widget_get_window (GTK_WIDGET(panel)), device, &x, &y, NULL);
 #else
 	gtk_widget_get_pointer (GTK_WIDGET (panel), &x, &y);
@@ -2248,6 +2251,9 @@ panel_widget_applet_move_to_cursor (PanelWidget *panel)
 	int pos;
 	int movement;
 	GtkWidget *applet;
+#if GTK_CHECK_VERSION(3, 0, 0)
+	GdkDevice      *device;
+#endif
 	GSList *forb;
 	GdkModifierType mods;
 	AppletData *ad;
@@ -2305,7 +2311,7 @@ panel_widget_applet_move_to_cursor (PanelWidget *panel)
 
 #if GTK_CHECK_VERSION (3, 0, 0)
 	GdkDeviceManager *device_manager = gdk_display_get_device_manager (gtk_widget_get_display (GTK_WIDGET(panel)));
-	GdkDevice *device = gdk_device_manager_get_client_pointer (device_manager);
+	device = gdk_device_manager_get_client_pointer (device_manager);
 	gdk_window_get_device_position (gtk_widget_get_window (GTK_WIDGET(panel)), device, NULL, NULL, &mods);
 #else
 	gdk_window_get_pointer(gtk_widget_get_window (GTK_WIDGET(panel)),
@@ -2344,6 +2350,9 @@ static int
 move_timeout_handler(gpointer data)
 {
 	PanelWidget   *panel = data;
+#if GTK_CHECK_VERSION(3, 0, 0)
+	GdkDevice      *device;
+#endif
 
 	g_return_val_if_fail(PANEL_IS_WIDGET(data),FALSE);
 
@@ -2365,7 +2374,7 @@ move_timeout_handler(gpointer data)
 
 #if GTK_CHECK_VERSION (3, 0, 0)
 		GdkDeviceManager *device_manager = gdk_display_get_device_manager (gtk_widget_get_display (widget));
-		GdkDevice *device = gdk_device_manager_get_client_pointer (device_manager);
+		device = gdk_device_manager_get_client_pointer (device_manager);
 		gdk_window_get_device_position (gtk_widget_get_window (widget), device, &x, &y, NULL);
 #else
 		gtk_widget_get_pointer(widget, &x, &y);
@@ -2806,12 +2815,9 @@ panel_widget_reparent (PanelWidget *old_panel,
 	panel_widget_reset_saved_focus (old_panel);
 	if (gtk_container_get_focus_child (GTK_CONTAINER (old_panel)) == applet)
 		focus_widget = gtk_window_get_focus (GTK_WINDOW (old_panel->toplevel));
-#if GTK_CHECK_VERSION (3, 14, 0)
+
 	gtk_container_remove (GTK_CONTAINER(old_panel), applet);
 	gtk_container_add (GTK_CONTAINER(new_panel), applet);
-#else
-	gtk_widget_reparent (applet, GTK_WIDGET (new_panel));
-#endif
 
 	if (info && info->type == PANEL_OBJECT_APPLET)
 		mate_panel_applet_frame_set_panel (MATE_PANEL_APPLET_FRAME (ad->applet), new_panel);

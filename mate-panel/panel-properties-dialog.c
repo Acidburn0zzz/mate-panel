@@ -393,7 +393,7 @@ panel_properties_dialog_image_changed (PanelPropertiesDialog *dialog)
 
 	/* FIXME: This is an ugly workaround for GTK+ bug #327243.
 	 * FIXME: Note that GTK+ 2.12 and file-set signal might help. */
-	if (!dialog->selection_emitted < 2 && !image) {
+	if (! (dialog->selection_emitted < 2) && !image) {
 		dialog->selection_emitted++;
 		return;
 	}
@@ -964,6 +964,13 @@ panel_properties_dialog_new (PanelToplevel *toplevel,
 	panel_toplevel_push_autohide_disabler (dialog->toplevel);
 	panel_widget_register_open_dialog (panel_toplevel_get_panel_widget (dialog->toplevel),
 					   dialog->properties_dialog);
+
+#if !GTK_CHECK_VERSION (3, 0, 0)
+	/* FIXME re-add once GTK3 support is fixed */
+	g_signal_connect (dialog->properties_dialog, "event",
+			  G_CALLBACK (config_event),
+			  PANEL_GTK_BUILDER_GET (gui, "notebook"));
+#endif
 
 	gtk_widget_show (dialog->properties_dialog);
 
