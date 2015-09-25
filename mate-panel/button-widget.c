@@ -657,6 +657,11 @@ button_widget_get_preferred_width (GtkWidget *widget,
 {
 	ButtonWidget *button_widget = BUTTON_WIDGET (widget);
 
+	if (button_widget->priv->pixbuf == NULL ) {
+		*minimal_width = *natural_width = 1;
+		return;
+	}
+
 	*minimal_width = *natural_width = gdk_pixbuf_get_width  (button_widget->priv->pixbuf);
 }
 
@@ -666,6 +671,11 @@ button_widget_get_preferred_height (GtkWidget *widget,
 				    gint *natural_height)
 {
 	ButtonWidget *button_widget = BUTTON_WIDGET (widget);
+
+	if (button_widget->priv->pixbuf == NULL ) {
+		*minimal_height = *natural_height = 1;
+		return;
+	}
 
 	*minimal_height = *natural_height = gdk_pixbuf_get_height (button_widget->priv->pixbuf);
 }
