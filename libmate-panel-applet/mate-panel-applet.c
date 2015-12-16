@@ -122,7 +122,7 @@ static void       mate_panel_applet_menu_cmd_lock       (GtkAction         *acti
 						    MatePanelApplet       *applet);
 static void       mate_panel_applet_register_object     (MatePanelApplet       *applet);
 #if GTK_CHECK_VERSION (3, 0, 0)
-static void       mate_panel_applet_apply_transparent_background (GtkWidget* widget, gboolean transparent);
+static void	_mate_panel_applet_apply_css	(GtkWidget* widget, MatePanelAppletBackgroundType type);
 #endif
 
 static const gchar panel_menu_ui[] =
@@ -1801,7 +1801,7 @@ mate_panel_applet_change_background(MatePanelApplet *applet,
 	GdkWindow* window = gtk_widget_get_window(GTK_WIDGET(applet));
 	g_return_if_fail(window != NULL);
 	gtk_widget_set_app_paintable(GTK_WIDGET(applet),TRUE);
-	mate_panel_applet_apply_transparent_background (GTK_WIDGET(applet->priv->plug), type != PANEL_NO_BACKGROUND);
+	_mate_panel_applet_apply_css(GTK_WIDGET(applet->priv->plug),type);
 	switch (type) {
 	case PANEL_NO_BACKGROUND:
 		gdk_window_set_background_pattern(window,NULL);
@@ -1991,30 +1991,42 @@ mate_panel_applet_setup (MatePanelApplet *applet)
 
 #if GTK_CHECK_VERSION (3, 0, 0)
 static void
-mate_panel_applet_apply_transparent_background(GtkWidget* widget, gboolean transparent)
+_mate_panel_applet_apply_css(GtkWidget* widget, MatePanelAppletBackgroundType type)
 {
 	GtkStyleContext* context;
-	GtkCssProvider  *provider;
 
 	context = gtk_widget_get_style_context (widget);
-	gtk_widget_reset_style(widget);
+	gtk_widget_reset_style (widget);
 
-	if (!transparent) {
-		gtk_style_context_remove_class(context,"mate-custom-panel-background");
-	} else {
-		provider = gtk_css_provider_new ();
-		gtk_css_provider_load_from_data (provider,
-						".mate-custom-panel-background{\n"
-						" background-color: rgba (0, 0, 0, 0);\n"
-						" background-image: none;\n"
-						"}",
-						-1, NULL);
+	switch (type) {
+	case PANEL_NO_BACKGROUND:
+		gtk_style_context_remove_class (context, "mate-custom-panel-background");
+		break;
+	case PANEL_COLOR_BACKGROUND:
+	case PANEL_PIXMAP_BACKGROUND:
 		gtk_style_context_add_class (context, "mate-custom-panel-background");
-		gtk_style_context_add_provider (context,
-						GTK_STYLE_PROVIDER (provider),
-						GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-		g_object_unref (provider);
+		break;
+	default:
+		g_assert_not_reached ();
+		break;
 	}
+}
+
+void _mate_panel_applet_prepare_css (GtkStyleContext *context)
+{
+	GtkCssProvider  *provider;
+
+	provider = gtk_css_provider_new ();
+	gtk_css_provider_load_from_data (provider,
+					".mate-custom-panel-background{\n"
+					" background-color: rgba (0, 0, 0, 0);\n"
+					" background-image: none;\n"
+					"}",
+					-1, NULL);
+	gtk_style_context_add_provider (context,
+					GTK_STYLE_PROVIDER (provider),
+					GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+	g_object_unref (provider);
 }
 #endif
 
@@ -2054,10 +2066,10 @@ mate_panel_applet_init (MatePanelApplet *applet)
 	gtk_widget_set_visual(GTK_WIDGET(applet->priv->plug), visual);
 	GtkStyleContext *context;
 	context = gtk_widget_get_style_context (GTK_WIDGET(applet->priv->plug));
-	gtk_style_context_remove_class (context,GTK_STYLE_CLASS_BACKGROUND);
 	gtk_style_context_add_class(context,"gnome-panel-menu-bar");
 	gtk_style_context_add_class(context,"mate-panel-menu-bar");
 	gtk_widget_set_name(GTK_WIDGET(applet->priv->plug), "PanelPlug");
+	_mate_panel_applet_prepare_css(context);
 #endif
 	g_signal_connect_swapped (G_OBJECT (applet->priv->plug), "embedded",
 				  G_CALLBACK (mate_panel_applet_setup),
@@ -2079,10 +2091,6 @@ mate_panel_applet_constructed (GObject* object)
 	 * https://github.com/perberos/Mate-Desktop-Environment/issues/27
 	 */
 	gtk_widget_set_name(GTK_WIDGET(applet), "PanelApplet");
-
-#if GTK_CHECK_VERSION (3, 0, 0)
-	mate_panel_applet_apply_transparent_background (GTK_WIDGET(applet), TRUE);
-#endif
 
 	mate_panel_applet_register_object (applet);
 }

@@ -158,11 +158,12 @@ const GdkPixmap     *panel_background_get_pixmap (PanelBackground *background);
 PanelBackgroundType
       panel_background_effective_type    (PanelBackground     *background);
 
+#if !GTK_CHECK_VERSION (3, 0, 0)
 void panel_background_change_background_on_widget (PanelBackground *background,
 						   GtkWidget       *widget);
 
-#if GTK_CHECK_VERSION (3, 0, 0)
-void panel_background_apply_css(GtkWidget* widget);
+#else
+void panel_background_apply_css(GtkWidget* widget, PanelBackground *background);
 #endif
 
 #endif /* __PANEL_BACKGROUND_H__ */
