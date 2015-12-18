@@ -1177,6 +1177,7 @@ static void panel_toplevel_hide_button_clicked(PanelToplevel* toplevel, GtkButto
 		panel_toplevel_unhide (toplevel);
 }
 
+#if GTK_CHECK_VERSION(3, 14, 0)
 static void
 set_arrow_type (GtkImage     *image,
                 GtkArrowType  arrow_type)
@@ -1198,6 +1199,7 @@ set_arrow_type (GtkImage     *image,
       break;
     }
 }
+#endif
 
 static GtkWidget *
 panel_toplevel_add_hide_button (PanelToplevel *toplevel,

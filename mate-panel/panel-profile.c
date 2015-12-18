@@ -971,15 +971,18 @@ void
 panel_profile_remove_from_list (PanelGSettingsKeyType  type,
 								const char        *id)
 {
-	gchar *key = NULL;
+	const gchar *key = NULL;
+
 	if (type == PANEL_GSETTINGS_TOPLEVELS)
 		key = g_strdup (PANEL_TOPLEVEL_ID_LIST_KEY);
 	else if (type == PANEL_GSETTINGS_OBJECTS)
 		key = g_strdup (PANEL_OBJECT_ID_LIST_KEY);
-
-	mate_gsettings_remove_all_from_strv (profile_settings,
+	
+	if (key != NULL)	
+		mate_gsettings_remove_all_from_strv (profile_settings,
 										  key,
 										  id);
+
 	g_free (key);
 }
 
