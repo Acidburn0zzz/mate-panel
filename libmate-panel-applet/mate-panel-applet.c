@@ -1996,7 +1996,6 @@ _mate_panel_applet_apply_css(GtkWidget* widget, MatePanelAppletBackgroundType ty
 	GtkStyleContext* context;
 
 	context = gtk_widget_get_style_context (widget);
-	gtk_widget_reset_style (widget);
 
 	switch (type) {
 	case PANEL_NO_BACKGROUND:
