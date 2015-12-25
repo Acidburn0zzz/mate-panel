@@ -376,18 +376,6 @@ mate_panel_applet_set_orient (MatePanelApplet      *applet,
 	g_object_notify (G_OBJECT (applet), "orient");
 }
 
-#if 0
-/* Locked should not be public API: it's not useful for applet writers to know
- * if the applet is locked (as opposed to locked_down). */
-static gboolean
-mate_panel_applet_get_locked (MatePanelApplet *applet)
-{
-	g_return_val_if_fail (PANEL_IS_APPLET (applet), FALSE);
-
-	return applet->priv->locked;
-}
-#endif
-
 static void
 mate_panel_applet_set_locked (MatePanelApplet *applet,
 			 gboolean     locked)
@@ -1395,12 +1383,17 @@ mate_panel_applet_create_foreign_surface_for_display (GdkDisplay *display,
                                                       Window      xid)
 {
 #ifdef HAVE_X
+	Status result = 0;
         Window window;
         gint x, y;
         guint width, height, border, depth;
 
-        if (!XGetGeometry (GDK_DISPLAY_XDISPLAY (display), xid, &window,
-                           &x, &y, &width, &height, &border, &depth))
+	gdk_error_trap_push ();
+	result = XGetGeometry (GDK_DISPLAY_XDISPLAY (display), xid, &window,
+	                       &x, &y, &width, &height, &border, &depth);
+	gdk_error_trap_pop_ignored ();
+
+	if (result == 0)
                 return NULL;
 
         return cairo_xlib_surface_create (GDK_DISPLAY_XDISPLAY (display),
@@ -1453,11 +1446,9 @@ mate_panel_applet_get_pixmap (MatePanelApplet     *applet,
 	window = gtk_widget_get_window (GTK_WIDGET (applet));
 
 #if GTK_CHECK_VERSION (3, 0, 0)
-	gdk_error_trap_push ();
 	background = mate_panel_applet_create_foreign_surface_for_display (gdk_window_get_display (window),
 									   gdk_window_get_visual (window),
 									   xid);
-	gdk_error_trap_pop_ignored ();
 
 	/* background can be NULL if the user changes the background very fast.
 	* We'll get the next update, so it's not a big deal. */
@@ -2017,11 +2008,11 @@ void _mate_panel_applet_prepare_css (GtkStyleContext *context)
 
 	provider = gtk_css_provider_new ();
 	gtk_css_provider_load_from_data (provider,
-					".mate-custom-panel-background{\n"
-					" background-color: rgba (0, 0, 0, 0);\n"
-					" background-image: none;\n"
-					"}",
-					-1, NULL);
+					 ".mate-custom-panel-background{\n"
+					 " background-color: rgba (0, 0, 0, 0);\n"
+					 " background-image: none;\n"
+					 "}",
+					 -1, NULL);
 	gtk_style_context_add_provider (context,
 					GTK_STYLE_PROVIDER (provider),
 					GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
