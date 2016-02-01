@@ -1504,51 +1504,11 @@ _panel_background_reset_widget_style_properties (GtkWidget *widget)
 }
 #endif
 
+#if !GTK_CHECK_VERSION (3, 0, 0)
 void
 panel_background_change_background_on_widget (PanelBackground *background,
 					      GtkWidget       *widget)
 {
-#if GTK_CHECK_VERSION (3, 0, 0)
-	GtkStyleProperties *properties;
-
-	gtk_widget_reset_style (widget);
-
-	switch (panel_background_get_type (background)) {
-	case PANEL_BACK_NONE:
-		_panel_background_reset_widget_style_properties (widget);
-		return;
-	case PANEL_BACK_COLOR:
-			properties = _panel_background_get_widget_style_properties (widget, TRUE);
-			gtk_style_properties_set (properties, GTK_STATE_FLAG_NORMAL,
-						  "background-color", &background->color,
-						  "background-image", NULL,
-						  NULL);
-		break;
-	case PANEL_BACK_IMAGE: {
-		cairo_pattern_t *pattern;
-
-		properties = _panel_background_get_widget_style_properties (widget, TRUE);
-		pattern = panel_background_get_pattern_for_widget (background, widget);
-		if (pattern) {
-			gtk_style_properties_set (properties, GTK_STATE_FLAG_NORMAL,
-						  "background-image", pattern,
-						  NULL);
-			cairo_pattern_destroy (pattern);
-		} else {
-			_panel_background_reset_widget_style_properties (widget);
-			return;
-		}
-	}
-		break;
-	default:
-		g_assert_not_reached ();
-		break;
-	}
-
-	gtk_style_context_add_provider (gtk_widget_get_style_context (widget),
-					GTK_STYLE_PROVIDER (properties),
-					GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-#else
 	PanelBackgroundType type;
 
 	panel_background_set_no_background_on_widget (background, widget);
@@ -1570,6 +1530,5 @@ panel_background_change_background_on_widget (PanelBackground *background,
 		g_assert_not_reached ();
 		break;
 	}
-#endif
 }
-
+#endif
