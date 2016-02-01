@@ -46,7 +46,7 @@ mate-panel/main.c
 mate-panel/menu.c
 mate-panel/panel-action-button.c
 mate-panel/panel-addto.c
-mate-panel/mate-panel-applet-frame.c
+mate-panel/panel-applet-frame.c
 mate-panel/panel-bindings.c
 mate-panel/panel-context-menu.c
 mate-panel/panel-ditem-editor.c

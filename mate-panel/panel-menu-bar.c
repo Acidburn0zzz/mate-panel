@@ -483,7 +483,7 @@ void panel_menu_bar_popup_menu(PanelMenuBar* menubar, guint32 activate_time)
 void panel_menu_bar_change_background(PanelMenuBar* menubar)
 {
 #if GTK_CHECK_VERSION (3, 0, 0)
-	panel_background_apply_css(GTK_WIDGET(menubar), &menubar->priv->panel->background);
+	panel_background_apply_css(&menubar->priv->panel->background, GTK_WIDGET(menubar));
 #else
 	panel_background_change_background_on_widget(&menubar->priv->panel->background, GTK_WIDGET(menubar));
 #endif
@@ -516,7 +516,12 @@ static void set_item_text_angle_and_alignment(GtkWidget* item, double text_angle
 
 	gtk_label_set_angle (GTK_LABEL (label), text_angle);
 
+#if GTK_CHECK_VERSION (3, 16, 0)
+	gtk_label_set_xalign (GTK_LABEL (label), xalign);
+	gtk_label_set_yalign (GTK_LABEL (label), yalign);
+#else
 	gtk_misc_set_alignment (GTK_MISC (label), xalign, yalign);
+#endif
 }
 
 static void panel_menu_bar_update_orientation(PanelMenuBar* menubar)
