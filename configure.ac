@@ -1,4 +1,4 @@
-AC_INIT([mate-panel], [1.13.0], [https://github.com/mate-desktop/mate-panel/issues],
+AC_INIT([mate-panel], [1.14.0], [https://github.com/mate-desktop/mate-panel/issues],
     [mate-panel], [http://www.mate-desktop.org])
 AC_CONFIG_HEADERS(config.h)
 AM_INIT_AUTOMAKE([1.9 no-dist-gzip dist-xz tar-ustar -Wno-portability check-news])
@@ -35,7 +35,6 @@ AC_DEFINE([GLIB_VERSION_MAX_ALLOWED], [GLIB_VERSION_2_36],
 AC_DEFINE([GLIB_VERSION_MIN_REQUIRED], [GLIB_VERSION_2_36],
 	[Warn on use of APIs deprecated before GLib 2.36])
 
-AM_PATH_PYTHON
 AC_PATH_PROG(GLIB_GENMARSHAL, glib-genmarshal)
 
 MATE_COMPILE_WARNINGS(maximum)
@@ -69,6 +68,7 @@ CAIRO_REQUIRED=1.0.0
 DBUS_GLIB_REQUIRED=0.80
 DCONF_NEW_REQUIRED=0.13.4
 DCONF_OLD_REQUIRED=0.10.0
+LIBRSVG_REQUIRED=2.36.2
 
 # GTK library
 
@@ -102,13 +102,12 @@ case "$with_gtk" in
 esac
 
 AC_SUBST(GTK_API_VERSION)
-
 dnl pkg-config dependency checks
 
 PKG_CHECK_MODULES(EGG_SMCLIENT, ice sm gtk+-$GTK_API_VERSION)
 
 PKG_CHECK_MODULES(GMODULE, gmodule-2.0,[GMODULE_ADD="gmodule-2.0"],[GMODULE_ADD=""])
-PKG_CHECK_MODULES(PANEL, $GMODULE_ADD gdk-pixbuf-2.0 >= $GDK_PIXBUF_REQUIRED pango >= $PANGO_REQUIRED gtk+-$GTK_API_VERSION >= $GTK_REQUIRED glib-2.0 >= $GLIB_REQUIRED gio-unix-2.0 >= $GLIB_REQUIRED mate-desktop-$GTK_API_VERSION >= $LIBMATE_DESKTOP_REQUIRED gio-2.0 >= $GLIB_REQUIRED libmate-menu >= $LIBMATE_MENU_REQUIRED dbus-glib-1 >= $DBUS_GLIB_REQUIRED)
+PKG_CHECK_MODULES(PANEL, $GMODULE_ADD gdk-pixbuf-2.0 >= $GDK_PIXBUF_REQUIRED pango >= $PANGO_REQUIRED gtk+-$GTK_API_VERSION >= $GTK_REQUIRED glib-2.0 >= $GLIB_REQUIRED gio-unix-2.0 >= $GLIB_REQUIRED mate-desktop-$GTK_API_VERSION >= $LIBMATE_DESKTOP_REQUIRED gio-2.0 >= $GLIB_REQUIRED libmate-menu >= $LIBMATE_MENU_REQUIRED libcanberra-gtk$LIBCANBERRA_API_VERSION dbus-glib-1 >= $DBUS_GLIB_REQUIRED)
 AC_SUBST(PANEL_CFLAGS)
 AC_SUBST(PANEL_LIBS)
 
@@ -145,7 +144,7 @@ PKG_CHECK_MODULES(TZ, gio-2.0 >= $GLIB_REQUIRED)
 AC_SUBST(TZ_CFLAGS)
 AC_SUBST(TZ_LIBS)
 
-PKG_CHECK_MODULES(CLOCK, pango >= $PANGO_REQUIRED gtk+-$GTK_API_VERSION >= $GTK_REQUIRED glib-2.0 >= $GLIB_REQUIRED gio-2.0 >= $GLIB_REQUIRED librsvg-2.0 dbus-glib-1 $WEATHER_LIB >= $WEATHER_REQUIRED mate-desktop-$GTK_API_VERSION >= $LIBMATE_DESKTOP_REQUIRED)
+PKG_CHECK_MODULES(CLOCK, pango >= $PANGO_REQUIRED gtk+-$GTK_API_VERSION >= $GTK_REQUIRED glib-2.0 >= $GLIB_REQUIRED gio-2.0 >= $GLIB_REQUIRED librsvg-2.0 >= $LIBRSVG_REQUIRED dbus-glib-1 $WEATHER_LIB >= $WEATHER_REQUIRED mate-desktop-$GTK_API_VERSION >= $LIBMATE_DESKTOP_REQUIRED)
 AC_SUBST(CLOCK_CFLAGS)
 AC_SUBST(CLOCK_LIBS)
 
@@ -215,13 +214,7 @@ AM_CONDITIONAL(WNCKLET_INPROCESS, test -n "$WNCKLET_COMPILE_INPROCESS")
 gl_CHECK_TYPE_STRUCT_DIRENT_D_TYPE
 
 dnl X development libraries check
-AC_ARG_ENABLE([x],
-	AS_HELP_STRING([--disable-x], [Disable X server support]))
 
-AM_CONDITIONAL([HAVE_X],  [test "x$enable_x" != "xno"])
-if test "x$enable_x" != "xno"; then
-enable_x=yes
-AC_DEFINE(HAVE_X, 1, [Have X server])
 PKG_CHECK_MODULES(X, x11 xau, :, [
   # pkg-config modules not found (only present since X11R7 aka Xorg); use
   # old-style detection
@@ -251,32 +244,12 @@ PKG_CHECK_MODULES(XRANDR, xrandr >= 1.3.0, have_randr=yes, have_randr=no)
 if test "x$have_randr" = "xyes"; then
   AC_DEFINE(HAVE_RANDR, 1, [Have the Xrandr extension library])
 fi
-else
-enable_x=no
-have_randr=no
-fi
 
 dnl Modules dir
 AC_SUBST([modulesdir],"\$(libdir)/mate-panel/modules")
 
 dnl Applets dir
 AC_SUBST([appletsdir],"\$(datadir)/mate-panel/applets")
-
-
-dnl ****************************************************************************
-dnl * Ubuntu hacks
-dnl ****************************************************************************
-AC_ARG_ENABLE(ubuntu,
-	AS_HELP_STRING([--enable-ubuntu], [Enable Ubuntu Counter Hacks]), enable_ubuntu=yes, enable_ubuntu=no)
-
-if test "x$enable_ubuntu" = "xyes" ; then
-	# we define a UBUNTU on code
-	PANEL_CFLAGS="$PANEL_CFLAGS -DUBUNTU"
-
-	ENABLE_UBUNTU=yes
-else
-	ENABLE_UBUNTU=no
-fi
 
 
 dnl  Language Support
@@ -395,9 +368,7 @@ echo "
         Maintainer mode:               ${USE_MAINTAINER_MODE}
         Use *_DISABLE_DEPRECATED:      ${enable_deprecation_flags}
         Gtk+ version:                  ${GTK_API_VERSION}
-        Ubuntu Counter Hack:           ${ENABLE_UBUNTU}
         Applets to build in-process:   ${PANEL_INPROCESS_APPLETS}
-        X server support:              ${enable_x}
         XRandr support:                ${have_randr}
         Build introspection support:   ${found_introspection}
         Build gtk-doc documentation:   ${enable_gtk_doc}

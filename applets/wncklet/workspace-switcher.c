@@ -132,8 +132,16 @@ static void update_properties_for_wm(PagerData* pager)
 			g_assert_not_reached();
 	}
 
+#if GTK_CHECK_VERSION (3, 0, 0)
+	if (pager->properties_dialog) {
+	        gtk_widget_hide (pager->properties_dialog);
+	        gtk_widget_unrealize (pager->properties_dialog);
+	        gtk_widget_show (pager->properties_dialog);
+	}
+#else
 	if (pager->properties_dialog)
 		gtk_window_reshow_with_initial_size(GTK_WINDOW(pager->properties_dialog));
+#endif
 }
 
 static void window_manager_changed(WnckScreen* screen, PagerData* pager)
@@ -196,6 +204,53 @@ static void applet_change_orient(MatePanelApplet* applet, MatePanelAppletOrient 
 		gtk_label_set_text(GTK_LABEL(pager->label_row_col), pager->orientation == GTK_ORIENTATION_HORIZONTAL ? _("rows") : _("columns"));
 }
 
+#if GTK_CHECK_VERSION (3, 0, 0)
+static void applet_change_background(MatePanelApplet* applet, MatePanelAppletBackgroundType type, GdkColor* color, cairo_pattern_t *pattern, PagerData* pager)
+{
+        GtkStyleContext *new_context;
+        gtk_widget_reset_style (GTK_WIDGET (pager->pager));
+        new_context = gtk_style_context_new ();
+        gtk_style_context_set_path (new_context, gtk_widget_get_path (GTK_WIDGET (pager->pager)));
+        g_object_unref (new_context);
+
+        wnck_pager_set_shadow_type (WNCK_PAGER (pager->pager),
+                type == PANEL_NO_BACKGROUND ? GTK_SHADOW_NONE : GTK_SHADOW_IN);
+#else
+static void applet_change_background(MatePanelApplet* applet, MatePanelAppletBackgroundType type, GdkColor* color, GdkPixmap* pixmap, PagerData* pager)
+{
+        /* taken from the TrashApplet */
+        GtkRcStyle *rc_style;
+        GtkStyle *style;
+
+        /* reset style */
+        gtk_widget_set_style (GTK_WIDGET (pager->pager), NULL);
+        rc_style = gtk_rc_style_new ();
+        gtk_widget_modify_style (GTK_WIDGET (pager->pager), rc_style);
+        g_object_unref (rc_style);
+
+	switch (type)
+	{
+                case PANEL_COLOR_BACKGROUND:
+                        gtk_widget_modify_bg (GTK_WIDGET (pager->pager), GTK_STATE_NORMAL, color);
+                        break;
+
+                case PANEL_PIXMAP_BACKGROUND:
+                        style = gtk_style_copy (gtk_widget_get_style (GTK_WIDGET (pager->pager)));
+                        if (style->bg_pixmap[GTK_STATE_NORMAL])
+                                g_object_unref (style->bg_pixmap[GTK_STATE_NORMAL]);
+                        style->bg_pixmap[GTK_STATE_NORMAL] = g_object_ref(pixmap);
+                        gtk_widget_set_style (GTK_WIDGET (pager->pager), style);
+                        g_object_unref (style);
+                        break;
+
+                case PANEL_NO_BACKGROUND:
+                default:
+                        break;
+	}
+#endif
+}
+
+#if !GTK_CHECK_VERSION (3, 0, 0)
 static gboolean applet_scroll(MatePanelApplet* applet, GdkEventScroll* event, PagerData* pager)
 {
 	GdkScrollDirection absolute_direction;
@@ -299,6 +354,7 @@ static gboolean applet_scroll(MatePanelApplet* applet, GdkEventScroll* event, Pa
 
 	return TRUE;
 }
+#endif
 
 static void destroy_pager(GtkWidget* widget, PagerData* pager)
 {
@@ -505,12 +561,18 @@ gboolean workspace_switcher_applet_fill(MatePanelApplet* applet)
 	wnck_pager_set_shadow_type(WNCK_PAGER(pager->pager), GTK_SHADOW_IN);
 
 #if GTK_CHECK_VERSION (3, 0, 0)
+	GtkStyleContext *context;
+	context = gtk_widget_get_style_context (GTK_WIDGET (applet));
+	gtk_style_context_add_class (context, "wnck-applet");
+	context = gtk_widget_get_style_context (pager->pager);
+	gtk_style_context_add_class (context, "wnck-pager");
+
 	provider = gtk_css_provider_new ();
 	gtk_css_provider_load_from_data (provider,
-                                         "WnckPager:selected {\n"
+                                         ".wnck-pager:selected {\n"
                                          "background-color: #4A90D9; }",
                                          -1, NULL);
-	gtk_style_context_add_provider (gtk_widget_get_style_context (pager->pager),
+	gtk_style_context_add_provider (context,
 					GTK_STYLE_PROVIDER (provider),
 					GTK_STYLE_PROVIDER_PRIORITY_FALLBACK);
 	g_object_unref (provider);
@@ -523,13 +585,14 @@ gboolean workspace_switcher_applet_fill(MatePanelApplet* applet)
 	g_signal_connect(G_OBJECT(pager->applet), "realize", G_CALLBACK(applet_realized), pager);
 	g_signal_connect(G_OBJECT(pager->applet), "unrealize", G_CALLBACK(applet_unrealized), pager);
 	g_signal_connect(G_OBJECT(pager->applet), "change_orient", G_CALLBACK(applet_change_orient), pager);
+#if !GTK_CHECK_VERSION (3, 0, 0)
 	g_signal_connect(G_OBJECT(pager->applet), "scroll-event", G_CALLBACK(applet_scroll), pager);
+#endif
+	g_signal_connect(G_OBJECT(pager->applet), "change_background", G_CALLBACK(applet_change_background), pager);
 
 	gtk_widget_show(pager->applet);
 
-#if !GTK_CHECK_VERSION (3, 0, 0)
 	mate_panel_applet_set_background_widget(MATE_PANEL_APPLET(pager->applet), GTK_WIDGET(pager->applet));
-#endif
 
 	action_group = gtk_action_group_new("WorkspaceSwitcher Applet Actions");
 	gtk_action_group_set_translation_domain(action_group, GETTEXT_PACKAGE);

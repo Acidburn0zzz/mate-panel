@@ -338,8 +338,8 @@ panel_force_quit (GdkScreen *screen,
 	GdkCursor     *cross;
 	GtkWidget     *popup;
 	GdkWindow     *root;
-	GdkDisplay *display;
 #if GTK_CHECK_VERSION (3, 0, 0)
+	GdkDisplay *display;
 	GdkDevice *pointer;
 	GdkDevice *keyboard;
 	GdkDeviceManager *device_manager;
@@ -350,11 +350,10 @@ panel_force_quit (GdkScreen *screen,
 	root = gdk_screen_get_root_window (screen);
 
 	gdk_window_add_filter (root, (GdkFilterFunc) popup_filter, popup);
-
-	display = gdk_window_get_display (root);
-
-	cross = gdk_cursor_new_for_display (display, GDK_CROSS);
+	cross = gdk_cursor_new_for_display (gdk_display_get_default (),
+	                                    GDK_CROSS);
 #if GTK_CHECK_VERSION (3, 0, 0)
+	display = gdk_window_get_display (root);
 	device_manager = gdk_display_get_device_manager (display);
 	pointer = gdk_device_manager_get_client_pointer (device_manager);
 	keyboard = gdk_device_get_associated_device (pointer);

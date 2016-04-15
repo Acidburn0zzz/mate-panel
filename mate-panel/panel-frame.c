@@ -23,12 +23,9 @@
  */
 
 #include <config.h>
+#include <libpanel-util/panel-color.h>
 
 #include "panel-frame.h"
-
-#define MATE_DESKTOP_USE_UNSTABLE_API
-#include <libmate-desktop/mate-desktop-utils.h>
-
 #include "panel-typebuiltins.h"
 
 G_DEFINE_TYPE (PanelFrame, panel_frame, GTK_TYPE_BIN)
@@ -131,11 +128,7 @@ panel_frame_size_request (GtkWidget      *widget,
 
 	child = gtk_bin_get_child (bin);
 	if (child && gtk_widget_get_visible (child))
-#if GTK_CHECK_VERSION (3, 0, 0)
-		gtk_widget_get_preferred_size (child, requisition, NULL);
-#else
 		gtk_widget_size_request (child, requisition);
-#endif
 
 	requisition->width  += border_width;
 	requisition->height += border_width;
@@ -242,7 +235,8 @@ panel_frame_draw (GtkWidget      *widget,
 #if GTK_CHECK_VERSION (3, 0, 0)
 	GtkStyleContext  *context;
 	GtkStateFlags     state;
-	GdkRGBA           bg, dark, light;
+	GdkRGBA          *bg;
+	GdkRGBA           dark, light;
 	GtkBorder         padding;
 #else
 	GdkWindow        *window;
@@ -265,7 +259,13 @@ panel_frame_draw (GtkWidget      *widget,
 	width = gtk_widget_get_allocated_width (widget);
 	height = gtk_widget_get_allocated_height (widget);
 
-	mate_desktop_gtk_style_get_light_color (context, state, &light);
+	gtk_style_context_get (context, state,
+	                       "background-color", &bg,
+	                       NULL);
+
+	gtk_style_shade (bg, &dark, 0.7);
+	gtk_style_shade (bg, &light, 1.3);
+
 	gtk_style_context_get_padding (context, state, &padding);
 #else
 	window = gtk_widget_get_window (widget);
@@ -337,7 +337,7 @@ panel_frame_draw (GtkWidget      *widget,
 		cairo_stroke (cr);
 
 		if (padding.top > 1) {
-			gdk_cairo_set_source_rgba (cr, &bg);
+			gdk_cairo_set_source_rgba (cr, bg);
 			cairo_move_to (cr, x + .5, y + 1 + .5);
 			cairo_line_to (cr, x + width - 1 - .5, y + 1 + .5);
 			cairo_stroke (cr);
@@ -351,7 +351,7 @@ panel_frame_draw (GtkWidget      *widget,
 		cairo_stroke (cr);
 
 		if (padding.left > 1) {
-			gdk_cairo_set_source_rgba (cr, &bg);
+			gdk_cairo_set_source_rgba (cr, bg);
 			cairo_move_to (cr, x + 1 + .5, y + .5);
 			cairo_line_to (cr, x + 1 + .5, y + height - 1 - .5);
 			cairo_stroke (cr);
@@ -499,6 +499,9 @@ panel_frame_class_init (PanelFrameClass *klass)
 #else
 	widget_class->size_request  = panel_frame_size_request;
 	widget_class->expose_event  = panel_frame_expose;
+#endif
+#if GTK_CHECK_VERSION (3, 19, 0)
+	gtk_widget_class_set_css_name (widget_class, "PanelFrame");
 #endif
 
 	g_object_class_install_property (

@@ -159,7 +159,12 @@ back_change (AppletInfo  *info,
 	switch (info->type) {
 	case PANEL_OBJECT_APPLET:
 		mate_panel_applet_frame_change_background (
-			MATE_PANEL_APPLET_FRAME (info->widget), panel->background.type);
+
+#if GTK_CHECK_VERSION (3, 18, 0)
+		MATE_PANEL_APPLET_FRAME (info->widget), panel->toplevel->background.type);
+#else
+		MATE_PANEL_APPLET_FRAME (info->widget), panel->background.type);
+#endif
 		break;
 	case PANEL_OBJECT_MENU_BAR:
 		panel_menu_bar_change_background (PANEL_MENU_BAR (info->widget));
@@ -399,7 +404,11 @@ panel_key_press_event (GtkWidget   *widget,
 	if (GTK_IS_SOCKET (gtk_window_get_focus (GTK_WINDOW (widget))) &&
 	    event->keyval == GDK_KEY_F10 &&
 	    (event->state & gtk_accelerator_get_default_mod_mask ()) == GDK_CONTROL_MASK)
+#if GTK_CHECK_VERSION (3, 0, 0)
 		return gtk_bindings_activate (G_OBJECT (widget),
+#else
+		return gtk_bindings_activate (GTK_OBJECT (widget),
+#endif
 					      event->keyval,
 					      event->state);
 

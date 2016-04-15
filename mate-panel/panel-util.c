@@ -39,6 +39,7 @@
 #include <libpanel-util/panel-xdg.h>
 
 #include "applet.h"
+#include "nothing.h"
 #include "xstuff.h"
 #include "panel-config-global.h"
 #include "panel-schemas.h"
@@ -111,7 +112,9 @@ panel_push_window_busy (GtkWidget *window)
 
 		win = gtk_widget_get_window (window);
 		if (win != NULL) {
-			GdkCursor *cursor = gdk_cursor_new_for_display (gtk_widget_get_display(window), GDK_WATCH);
+			GdkCursor *cursor = gdk_cursor_new_for_display (gdk_display_get_default (),
+			                                                GDK_WATCH);
+
 			gdk_window_set_cursor (win, cursor);
 #if GTK_CHECK_VERSION (3, 0, 0)
 			g_object_unref (cursor);
@@ -322,7 +325,7 @@ panel_find_icon (GtkIconTheme  *icon_theme,
 
 	if (info) {
 		retval = g_strdup (gtk_icon_info_get_filename (info));
-#if GTK_CHECK_VERSION (3, 0, 0)
+#if GTK_CHECK_VERSION (3, 8, 0)
 		g_object_unref (info);
 #else
 		gtk_icon_info_free (info);
@@ -766,16 +769,20 @@ panel_util_cairo_rgbdata_to_pixbuf (unsigned char *data,
 
 char *
 guess_icon_from_exec (GtkIconTheme *icon_theme,
-		      const gchar  *exec)
+		      GKeyFile     *key_file)
 {
+	char *exec;
 	char *icon_name;
 	char *path;
 
+	exec = panel_key_file_get_string (key_file, "Exec");
 	if (!exec || !exec [0]) {
+		g_free (exec);
 		return NULL;
 	}
 
 	icon_name = g_path_get_basename (exec);
+	g_free (exec);
 
 	path = panel_find_icon (icon_theme, icon_name, 48);
 	if (!path) {

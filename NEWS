@@ -1,11 +1,21 @@
-1.13.0
-  * GTK3:  More panel BG rendering bugfixes
-  * Add separate "Delete" button in reload applet dialog
-  * GTK3 workspace-switcher: add fallback color
-  * GTK3 workspace-switcher: add fallback color
-  * GTK3: Fix rendering of user backgrounds in gtk3.18+
-  * drop MateConf migration script
-  * Gtk3: Don't use deprecated gtk_misc_set_alignment
+1.14.0
+  * Drop MateConf migration script
+  * Add separate "Delete" button in reload applet dialog, and
+    make "Don't Reload" button do what it says (it won't delete
+    applet permanently now)
+  * Make max number of bookmarks in menu (before submenu is created)
+    configurable via GSettings key
+  * Make icon size of menu items configurable via GSettings key
+  * Change default menubar icon size to 22px
+  * Drop "Ubuntu hacks" (--enable-ubuntu build option) as Ubuntu
+    dropped that stuff long ago
+  * GTK+3: add several style classes
+  * GTK+3: add several css names for 3.20
+  * GTK+3: fix rendering of custom backgrounds with 3.18 and newer
+  * GTK+3: fix a lot of deprecations
+  * Some more fixes and cleanups
+  * Translations update
+  * Add Changelog generation
 
 1.12.2
   * Drawer applet: fix occasional stretching of drawer's panel

@@ -48,7 +48,7 @@ static gboolean       initialized = FALSE;
 static gboolean       have_randr  = FALSE;
 static guint          reinit_id   = 0;
 
-#if defined(HAVE_RANDR) && defined(HAVE_X)
+#ifdef HAVE_RANDR
 static gboolean
 _panel_multiscreen_output_should_be_first (Display       *xdisplay,
 					   RROutput       output,
@@ -200,7 +200,6 @@ panel_multiscreen_get_randr_monitors_for_screen (GdkScreen     *screen,
 
 	return TRUE;
 #else
-	*monitors_ret = gdk_screen_get_n_monitors (screen);
 	return FALSE;
 #endif
 }
@@ -418,7 +417,7 @@ panel_multiscreen_init (void)
 		return;
 
 	display = gdk_display_get_default ();
-#if GTK_CHECK_VERSION (3, 10, 0)
+#if GTK_CHECK_VERSION (3, 0, 0)
 	screens = 1;
 #else
 	screens = gdk_display_get_n_screens (display);
@@ -454,10 +453,15 @@ panel_multiscreen_init (void)
 void
 panel_multiscreen_reinit (void)
 {
+#if GTK_CHECK_VERSION (3, 0, 0)
+	GdkScreen *screen;
+	GList     *toplevels, *l;
+#else
 	GdkDisplay *display;
 	GList      *toplevels, *l;
 	int         new_screens;
 	int         i;
+#endif
 
 	if (monitors)
 		g_free (monitors);
@@ -470,14 +474,14 @@ panel_multiscreen_reinit (void)
 		g_free (geometries);
 	}
 
+#if GTK_CHECK_VERSION (3, 0, 0)
+	screen = gdk_screen_get_default ();
+	g_signal_handlers_disconnect_by_func (screen, panel_multiscreen_queue_reinit, NULL);
+#else
 	display = gdk_display_get_default ();
 	/* Don't use the screens variable since in the future, we might
 	 * want to call this function when a screen appears/disappears. */
-#if GTK_CHECK_VERSION (3, 10, 0)
-	new_screens = 1;
-#else
 	new_screens = gdk_display_get_n_screens (display);
-#endif
 
 	for (i = 0; i < new_screens; i++) {
 		GdkScreen *screen;
@@ -487,6 +491,7 @@ panel_multiscreen_reinit (void)
 						      panel_multiscreen_queue_reinit,
 						      NULL);
 	}
+#endif
 
 	initialized = FALSE;
 	panel_multiscreen_init ();
@@ -497,6 +502,12 @@ panel_multiscreen_reinit (void)
 		gtk_widget_queue_resize (l->data);
 
 	g_list_free (toplevels);
+}
+
+int
+panel_multiscreen_screens (void)
+{
+	return screens;
 }
 
 int
