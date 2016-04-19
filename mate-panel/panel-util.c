@@ -39,7 +39,6 @@
 #include <libpanel-util/panel-xdg.h>
 
 #include "applet.h"
-#include "nothing.h"
 #include "xstuff.h"
 #include "panel-config-global.h"
 #include "panel-schemas.h"
@@ -769,20 +768,12 @@ panel_util_cairo_rgbdata_to_pixbuf (unsigned char *data,
 
 char *
 guess_icon_from_exec (GtkIconTheme *icon_theme,
-		      GKeyFile     *key_file)
+		      const gchar *exec)
 {
-	char *exec;
 	char *icon_name;
 	char *path;
 
-	exec = panel_key_file_get_string (key_file, "Exec");
-	if (!exec || !exec [0]) {
-		g_free (exec);
-		return NULL;
-	}
-
 	icon_name = g_path_get_basename (exec);
-	g_free (exec);
 
 	path = panel_find_icon (icon_theme, icon_name, 48);
 	if (!path) {

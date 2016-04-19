@@ -117,12 +117,9 @@ panel_headers = \
 	panel-modules.h \
 	panel-applet-info.h \
 	panel-reset.h \
-	panel-schemas.h
-
-if HAVE_X
-panel_sources += panel-force-quit.c
-panel_headers += panel-force-quit.h
-endif
+	panel-schemas.h \
+	panel-force-quit.c \
+	panel-force-quit.h
 
 mate_panel_SOURCES = \
 	$(panel_sources) \

@@ -46,9 +46,7 @@
 #include "panel-config-global.h"
 #include "panel-profile.h"
 #include "panel-typebuiltins.h"
-#ifdef HAVE_X
 #include "panel-force-quit.h"
-#endif
 #include "panel-util.h"
 #include "panel-session.h"
 #include "panel-globals.h"
@@ -95,9 +93,7 @@ static ObsoleteEnumStringPair panel_action_type_map [] = {
 	{ PANEL_ACTION_LOGOUT,         "logout"         },
 	{ PANEL_ACTION_RUN,            "run"            },
 	{ PANEL_ACTION_SEARCH,         "search"         },
-#ifdef HAVE_X
 	{ PANEL_ACTION_FORCE_QUIT,     "force-quit"     },
-#endif
 	{ PANEL_ACTION_CONNECT_SERVER, "connect-server" },
 	{ PANEL_ACTION_SHUTDOWN,       "shutdown"       },
 	{ 0,                           NULL             },
@@ -284,7 +280,6 @@ panel_action_search (GtkWidget *widget)
 						 screen, NULL);
 }
 
-#ifdef HAVE_X
 /* Force Quit
  */
 static void
@@ -293,7 +288,6 @@ panel_action_force_quit (GtkWidget *widget)
 	panel_force_quit (gtk_widget_get_screen (widget),
 			  gtk_get_current_event_time ());
 }
-#endif
 
 /* Connect Server
  */
@@ -393,7 +387,6 @@ static PanelAction actions [] = {
 		"ACTION:search:NEW",
 		panel_action_search, NULL, NULL, NULL
 	},
-#ifdef HAVE_X
 	{
 		PANEL_ACTION_FORCE_QUIT,
 		PANEL_ICON_FORCE_QUIT,
@@ -404,7 +397,6 @@ static PanelAction actions [] = {
 		panel_action_force_quit, NULL, NULL,
 		panel_lockdown_get_disable_force_quit
 	},
-#endif
 	{
 		PANEL_ACTION_CONNECT_SERVER,
 		PANEL_ICON_REMOTE, //FIXME icon

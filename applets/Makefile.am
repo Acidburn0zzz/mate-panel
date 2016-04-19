@@ -1,10 +1,7 @@
 SUBDIRS =			\
 	clock			\
 	fish			\
-	wncklet
-
-if HAVE_X
-SUBDIRS += notification_area
-endif
+	wncklet			\
+	notification_area
 
 -include $(top_srcdir)/git.mk

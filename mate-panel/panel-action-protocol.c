@@ -35,9 +35,7 @@
 #include "panel-globals.h"
 #include "panel-toplevel.h"
 #include "panel-util.h"
-#ifdef HAVE_X
 #include "panel-force-quit.h"
-#endif
 #include "panel-run-dialog.h"
 #include "panel-menu-button.h"
 #include "panel-menu-bar.h"
@@ -48,9 +46,7 @@ static GdkAtom atom_mate_panel_action_main_menu  = None;
 static GdkAtom atom_mate_panel_action_run_dialog = None;
 static GdkAtom atom_gnome_panel_action_main_menu  = None;
 static GdkAtom atom_gnome_panel_action_run_dialog = None;
-#ifdef HAVE_X
 static GdkAtom atom_mate_panel_action_kill_dialog = None;
-#endif
 
 static void
 panel_action_protocol_main_menu (GdkScreen *screen,
@@ -91,14 +87,12 @@ panel_action_protocol_run_dialog (GdkScreen *screen,
 	panel_run_dialog_present (screen, activate_time);
 }
 
-#ifdef HAVE_X
 static void
 panel_action_protocol_kill_dialog (GdkScreen *screen,
 				   guint32    activate_time)
 {
 	panel_force_quit (screen, activate_time);
 }
-#endif
 
 static GdkFilterReturn
 panel_action_protocol_filter (GdkXEvent *gdk_xevent,
@@ -140,10 +134,8 @@ panel_action_protocol_filter (GdkXEvent *gdk_xevent,
 		panel_action_protocol_main_menu (screen, activation_time);
 	else if (action_atom == atom_gnome_panel_action_run_dialog)
 		panel_action_protocol_run_dialog (screen, activation_time);
-#ifdef HAVE_X
 	else if (action_atom == atom_mate_panel_action_kill_dialog)
 		panel_action_protocol_kill_dialog (screen, activation_time);
-#endif
 	else
 		return GDK_FILTER_CONTINUE;
 
@@ -159,9 +151,7 @@ panel_action_protocol_init (void)
 	atom_mate_panel_action_run_dialog = gdk_atom_intern_static_string("_MATE_PANEL_ACTION_RUN_DIALOG");
 	atom_gnome_panel_action_main_menu = gdk_atom_intern_static_string ("_GNOME_PANEL_ACTION_MAIN_MENU");
 	atom_gnome_panel_action_run_dialog = gdk_atom_intern_static_string ("_GNOME_PANEL_ACTION_RUN_DIALOG");
-#ifdef HAVE_X
 	atom_mate_panel_action_kill_dialog = gdk_atom_intern_static_string ("_MATE_PANEL_ACTION_KILL_DIALOG");
-#endif
 
 	/* We'll filter event sent on non-root windows later */
 	gdk_window_add_filter (NULL, panel_action_protocol_filter, NULL);
