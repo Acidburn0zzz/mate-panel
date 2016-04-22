@@ -2297,7 +2297,9 @@ location_start_element (GMarkupParseContext *context,
 #if GTK_CHECK_VERSION (3, 0 ,0)
 	if (!loc)
 		loc = clock_location_new (name, city, timezone,
-					  latitude, longitude, code);
+					  latitude, longitude, code,
+					  cd->temperature_unit,
+					  cd->speed_unit);
 #else
         if (!loc)
 		loc = clock_location_new (name, city, timezone,
@@ -2346,8 +2348,9 @@ cities_changed (GSettings    *settings,
 static void
 update_weather_locations (ClockData *cd)
 {
-#if !GTK_CHECK_VERSION (3, 0, 0)
-/*fixme*/
+#if GTK_CHECK_VERSION (3, 0, 0)
+	/* fixme: update units */
+#else
 	GList *locations, *l;
         WeatherPrefs prefs = {
                 FORECAST_STATE,
@@ -2663,8 +2666,6 @@ loc_to_string (ClockLocation *loc)
 		 clock_location_get_weather_code (loc),
 		 clock_location_is_current (loc) ? "true" : "false");
 
-	g_printf ("%s:%d\t%s\n", __FUNCTION__, __LINE__, ret);
-
         setlocale (LC_NUMERIC, "");
 
         return ret;
@@ -2745,8 +2746,6 @@ run_prefs_edit_save (GtkButton *button, ClockData *cd)
         }
 #endif
 
-	g_printf("%s:%d\tcity=%s weather code=%s name=%s\n",__FUNCTION__, __LINE__, city, weather_code, name);
-
         sscanf (gtk_entry_get_text (GTK_ENTRY (lat_entry)), "%f", &lat);
         sscanf (gtk_entry_get_text (GTK_ENTRY (lon_entry)), "%f", &lon);
 
@@ -2766,8 +2765,7 @@ run_prefs_edit_save (GtkButton *button, ClockData *cd)
 		clock_location_set_weather_code (loc, weather_code);
         } else {
 #if GTK_CHECK_VERSION (3, 0, 0)
-		/*fixme*/
-                loc = clock_location_new (name, city, timezone, lat, lon, weather_code);
+                loc = clock_location_new (name, city, timezone, lat, lon, weather_code, cd->temperature_unit, cd->speed_unit);
 #else
 		WeatherPrefs prefs;
 
@@ -2878,6 +2876,7 @@ static void
 location_changed (GObject *object, GParamSpec *param, ClockData *cd)
 {
 #if GTK_CHECK_VERSION (3, 0, 0)
+	/*fixme: location_changed*/
 #else
         MateWeatherLocationEntry *entry = MATEWEATHER_LOCATION_ENTRY (object);
         MateWeatherLocation *gloc;
@@ -3166,39 +3165,51 @@ speed_combo_changed (GtkComboBox *combo, ClockData *cd)
 	g_settings_set_enum (cd->settings, KEY_SPEED_UNIT, value);
 }
 
+#if GTK_CHECK_VERSION (3, 0, 0)
+typedef struct {
+	int unit;
+	const char *name;
+} weather_unit_t;
+#endif
+
 
 static void
 fill_prefs_window (ClockData *cd)
 {
-        static const int temperatures[] = {
 #if GTK_CHECK_VERSION (3, 0, 0)
-		GWEATHER_TEMP_UNIT_KELVIN,
-		GWEATHER_TEMP_UNIT_CENTIGRADE,
-		GWEATHER_TEMP_UNIT_FAHRENHEIT,
+	/* fixme: check localization */
+        static const weather_unit_t temperatures[] = {
+		{ .unit = GWEATHER_TEMP_UNIT_KELVIN, .name = N_("K") },
+		{ .unit = GWEATHER_TEMP_UNIT_CENTIGRADE, .name = N_("C") },
+		{ .unit = GWEATHER_TEMP_UNIT_FAHRENHEIT, .name = N_("F") },
+		{ .unit = -1, .name = N_("Invalid") }
+	};
+
+        static const weather_unit_t speeds[] = {
+		{ .unit = GWEATHER_SPEED_UNIT_MS, .name = N_("m/s") },
+		{ .unit = GWEATHER_SPEED_UNIT_KPH, .name = N_("km/h") },
+		{ .unit = GWEATHER_SPEED_UNIT_MPH, .name = N_("mph") },
+		{ .unit = GWEATHER_SPEED_UNIT_KNOTS, .name = N_("knots") },
+		{ .unit = GWEATHER_SPEED_UNIT_BFT, .name = N_("Beaufort scale") },
+		{ .unit = -1, .name = N_("Invalid") }
+	};
 #else
+        static const int temperatures[] = {
                 TEMP_UNIT_KELVIN,
                 TEMP_UNIT_CENTIGRADE,
                 TEMP_UNIT_FAHRENHEIT,
-#endif
                 -1
         };
 
         static const int speeds[] = {
-#if GTK_CHECK_VERSION (3, 0, 0)
-		GWEATHER_SPEED_UNIT_MS,
-		GWEATHER_SPEED_UNIT_KPH,
-		GWEATHER_SPEED_UNIT_MPH,
-		GWEATHER_SPEED_UNIT_KNOTS,
-		GWEATHER_SPEED_UNIT_BFT,
-#else
                 SPEED_UNIT_MS,
                 SPEED_UNIT_KPH,
                 SPEED_UNIT_MPH,
                 SPEED_UNIT_KNOTS,
                 SPEED_UNIT_BFT,
-#endif
                 -1
         };
+#endif
 
         GtkWidget *radio_12hr;
         GtkWidget *radio_24hr;
@@ -3274,7 +3285,10 @@ fill_prefs_window (ClockData *cd)
 	gtk_cell_layout_set_attributes (GTK_CELL_LAYOUT (widget), renderer, "text", 0, NULL);
 
 #if GTK_CHECK_VERSION (3, 0, 0)
-	/*fixme*/
+        for (i = 0; temperatures[i].unit != -1; i++)
+		gtk_list_store_insert_with_values (store, &iter, -1,
+						   0, temperatures[i].name,
+						   -1);
 #else
         for (i = 0; temperatures[i] != -1; i++)
 		gtk_list_store_insert_with_values (store, &iter, -1,
@@ -3297,7 +3311,10 @@ fill_prefs_window (ClockData *cd)
 	gtk_cell_layout_set_attributes (GTK_CELL_LAYOUT (widget), renderer, "text", 0, NULL);
 
 #if GTK_CHECK_VERSION (3, 0, 0)
-	/*fixme*/
+        for (i = 0; speeds[i].unit != -1; i++)
+		gtk_list_store_insert_with_values (store, &iter, -1,
+						   0, speeds[i].name,
+						   -1);
 #else
         for (i = 0; speeds[i] != -1; i++)
 		gtk_list_store_insert_with_values (store, &iter, -1,

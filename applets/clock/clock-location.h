@@ -47,7 +47,9 @@ GType clock_location_get_type (void);
 ClockLocation *clock_location_new (const gchar *name, const gchar *city,
 				   const gchar *timezone,
 				   gfloat latitude, gfloat longitude,
-				   const gchar *code);
+				   const gchar *code,
+				   GWeatherTemperatureUnit temperature_unit,
+				   GWeatherSpeedUnit speed_unit);
 #else
 ClockLocation *clock_location_new (const gchar *name, const gchar *city,
 				   const gchar *timezone,

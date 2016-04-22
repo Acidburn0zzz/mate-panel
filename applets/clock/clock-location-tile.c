@@ -656,7 +656,7 @@ weather_info_setup_tooltip (WeatherInfo *info, ClockLocation *location, GtkToolt
 {
         GdkPixbuf *pixbuf = NULL;
         GtkIconTheme *theme = NULL;
-	const gchar *conditions, *wind;
+	const gchar *conditions;
 	gchar *temp, *apparent;
 	gchar *line1, *line2, *line3, *line4, *tip;
 	const gchar *icon_name;
@@ -680,16 +680,19 @@ weather_info_setup_tooltip (WeatherInfo *info, ClockLocation *location, GtkToolt
 #else
 	conditions = weather_info_get_conditions (info);
 #endif
-	if (strcmp (conditions, "-") != 0)
+	if (strcmp (conditions, "-") != 0) {
 #if GTK_CHECK_VERSION (3, 0, 0)
+		gchar * sky_info = gweather_info_get_sky (info);
 		line1 = g_strdup_printf (_("%s, %s"),
 					 conditions,
-					 gweather_info_get_sky (info)); /*fixme: memory leak*/
+					 sky_info);
+		g_free (sky_info);
 #else
 		line1 = g_strdup_printf (_("%s, %s"),
 					 conditions,
 					 weather_info_get_sky (info));
 #endif
+	}
 	else
 #if GTK_CHECK_VERSION (3, 0, 0)
 		line1 = gweather_info_get_sky (info);
@@ -716,13 +719,17 @@ weather_info_setup_tooltip (WeatherInfo *info, ClockLocation *location, GtkToolt
 	g_free (temp);
 	g_free (apparent);
 
+        if (strcmp (apparent, dgettext ("mate-applets-2.0", "Unknown")) != 0) {
 #if GTK_CHECK_VERSION (3, 0, 0)
-	wind = gweather_info_get_wind (info); /*fixme: memory leak*/
+		gchar *wind =  gweather_info_get_wind (info);
 #else
-	wind = weather_info_get_wind (info);
+		const gchar *wind = weather_info_get_wind (info);
 #endif
-        if (strcmp (apparent, dgettext ("mate-applets-2.0", "Unknown")) != 0)
 		line3 = g_strdup_printf ("%s\n", wind);
+#if GTK_CHECK_VERSION (3, 0, 0)
+		g_free (wind);
+#endif
+	}
 	else
 		line3 = g_strdup ("");
 
