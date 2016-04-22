@@ -856,7 +856,7 @@ setup_weather_updates (ClockLocation *loc)
 	set_weather_update_timeout (loc);
 
 #if GTK_CHECK_VERSION (3, 0, 0)
-	g_object_unref (wl);
+	gweather_location_unref (wl);
 #else
 	weather_location_free (wl);
 	g_free (dms);
