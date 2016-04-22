@@ -86,6 +86,7 @@ clock_location_find_and_ref (GList       *locations,
                              gfloat       longitude,
                              const gchar *code)
 {
+	g_printf("%s:%d\tname=%s city=%s timezone=%s code=%s\n", __FUNCTION__, __LINE__, name, city, timezone, code);
         GList *l;
         ClockLocationPrivate *priv;
 
@@ -101,10 +102,14 @@ clock_location_find_and_ref (GList       *locations,
                         break;
         }
 
-        if (l != NULL)
+        if (l != NULL) {
+		g_printf ("%s:%d\tfound\n", __FUNCTION__, __LINE__);
                 return g_object_ref (CLOCK_LOCATION (l->data));
-        else
+	}
+        else {
+		g_printf ("%s:%d\tnot found\n", __FUNCTION__, __LINE__);
                 return NULL;
+	}
 }
 
 #if GTK_CHECK_VERSION (3, 0, 0)
@@ -121,6 +126,7 @@ clock_location_new (const gchar *name, const gchar *city,
 		    const gchar *code, WeatherPrefs *prefs)
 #endif
 {
+	g_printf("%s:%d\n", __FILE__, __LINE__);
         ClockLocation *this;
         ClockLocationPrivate *priv;
 
@@ -840,9 +846,8 @@ setup_weather_updates (ClockLocation *loc)
 
 #if GTK_CHECK_VERSION (3, 0, 0)
 	/*fixme*/
-	priv->weather_info =
-		gweather_info_new (wl, GWEATHER_FORECAST_STATE);
-
+	priv->weather_info = gweather_info_new (wl, GWEATHER_FORECAST_STATE);
+	gweather_info_set_enabled_providers (priv->weather_info, GWEATHER_PROVIDER_ALL);
 #else
 	priv->weather_info =
 		weather_info_new (wl, &prefs, weather_info_updated, loc);
