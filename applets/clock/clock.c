@@ -583,8 +583,6 @@ update_location_tiles (ClockData *cd)
 {
         GList *l;
 
-	g_printf("%s:%d\n", __FILE__, __LINE__);
-
         for (l = cd->location_tiles; l; l = l->next) {
                 ClockLocationTile *tile;
 
@@ -1053,8 +1051,6 @@ sort_locations_by_name (gconstpointer a, gconstpointer b)
         ClockLocation *loc_a = (ClockLocation *) a;
         ClockLocation *loc_b = (ClockLocation *) b;
 
-	g_printf("%s:%d\n", __FILE__, __LINE__);
-
         const char *name_a = clock_location_get_display_name (loc_a);
         const char *name_b = clock_location_get_display_name (loc_b);
 
@@ -1067,8 +1063,6 @@ create_cities_store (ClockData *cd)
 	GtkTreeIter iter;
         GList *cities = cd->locations;
         GList *list = NULL;
-
-	g_printf("%s:%d\n", __FILE__, __LINE__);
 
         if (cd->cities_store) {
                 g_object_unref (G_OBJECT (cd->cities_store));
@@ -1086,8 +1080,6 @@ create_cities_store (ClockData *cd)
 
 	while (list) {
 		ClockLocation *loc = CLOCK_LOCATION (list->data);
-
-		g_printf("%s:%d\t city %s\n", __FUNCTION__, __LINE__, clock_location_get_display_name (loc));
 
 		gtk_list_store_append (cd->cities_store, &iter);
 		gtk_list_store_set (cd->cities_store, &iter,
@@ -1117,8 +1109,6 @@ sort_locations_by_time (gconstpointer a, gconstpointer b)
         struct tm tm_a;
         struct tm tm_b;
         gint ret;
-
-	g_printf("%s:%d\n", __FILE__, __LINE__);
 
         clock_location_localtime (loc_a, &tm_a);
         clock_location_localtime (loc_b, &tm_b);
@@ -1161,8 +1151,6 @@ location_tile_pressed_cb (ClockLocationTile *tile, gpointer data)
 {
         ClockData *cd = data;
         ClockLocation *loc;
-
-	g_printf("%s:%d\n", __FILE__, __LINE__);
 
         loc = clock_location_tile_get_location (tile);
 
@@ -1481,8 +1469,6 @@ weather_tooltip (GtkWidget   *widget,
 #else
         WeatherInfo *info;
 #endif
-
-	g_printf("%s:%d\n", __FILE__, __LINE__);
 
         locations = cd->locations;
 
@@ -2123,8 +2109,6 @@ location_weather_updated_cb (ClockLocation *location,
 #endif
                              gpointer       data)
 {
-	g_printf("%s:%d\n", __FILE__, __LINE__);
-
 	ClockData *cd = data;
 	const gchar *icon_name;
 	gchar *temp;
@@ -2174,9 +2158,6 @@ location_set_current_cb (ClockLocation *loc,
 	WeatherInfo *info;
 #endif
 
-
-	g_printf("%s:%d\n", __FILE__, __LINE__);
-
 	info = clock_location_get_weather_info (loc);
 	location_weather_updated_cb (loc, info, cd);
 
@@ -2189,8 +2170,6 @@ location_set_current_cb (ClockLocation *loc,
 static void
 locations_changed (ClockData *cd)
 {
-	g_printf("%s:%d\n", __FILE__, __LINE__);
-
 	GList *l;
 	ClockLocation *loc;
 	glong id;
@@ -2233,8 +2212,6 @@ locations_changed (ClockData *cd)
 static void
 set_locations (ClockData *cd, GList *locations)
 {
-	g_printf("%s:%d\n", __FILE__, __LINE__);
-
         free_locations (cd);
         cd->locations = locations;
 	locations_changed (cd);
@@ -2342,7 +2319,6 @@ cities_changed (GSettings    *settings,
                 gchar        *key,
                 ClockData    *cd)
 {
-	g_printf("%s:%d\n", __FUNCTION__, __LINE__);
 	LocationParserData data;
         GSList *cur = NULL;
 
@@ -2357,7 +2333,6 @@ cities_changed (GSettings    *settings,
 
         while (cur) {
                 const char *str = cur->data;
-		g_printf("%s:%d\t%s\n", __FUNCTION__, __LINE__, str);
                 g_markup_parse_context_parse (context, str, strlen (str), NULL);
                 cur = cur->next;
         }
@@ -2533,8 +2508,6 @@ load_gsettings (ClockData *cd)
 {
         gchar **values;
         GList *cities = NULL;
-
-	g_printf("%s:%d\n", __FILE__, __LINE__);
 
         cd->format = g_settings_get_enum (cd->settings, KEY_FORMAT);
 
@@ -2740,7 +2713,6 @@ run_prefs_edit_save (GtkButton *button, ClockData *cd)
 #else
         timezone = mateweather_timezone_menu_get_tzid (cd->zone_combo);
 #endif
-	g_printf ("%s:%d\ttimezone=%s\n", __FUNCTION__, __LINE__, timezone);
         if (!timezone) {
                 edit_hide (NULL, cd);
                 return;

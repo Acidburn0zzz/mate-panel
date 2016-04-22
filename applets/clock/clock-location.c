@@ -126,7 +126,6 @@ clock_location_new (const gchar *name, const gchar *city,
 		    const gchar *code, WeatherPrefs *prefs)
 #endif
 {
-	g_printf("%s:%d\n", __FILE__, __LINE__);
         ClockLocation *this;
         ClockLocationPrivate *priv;
 
