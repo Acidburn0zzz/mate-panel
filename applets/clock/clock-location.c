@@ -739,11 +739,14 @@ weather_info_updated (WeatherInfo *info, gpointer data)
 static gboolean
 update_weather_info (gpointer data)
 {
-#if GTK_CHECK_VERSION (3, 0, 0)
-	/*fixme*/
-#else
 	ClockLocation *loc = (ClockLocation *) data;
 	ClockLocationPrivate *priv = PRIVATE (loc);
+
+#if GTK_CHECK_VERSION (3, 0, 0)
+	/*fixme*/
+	gweather_info_abort (priv->weather_info);
+	gweather_info_update (priv->weather_info);
+#else
 	WeatherPrefs prefs = {
 		FORECAST_STATE,
 		FALSE,
@@ -764,7 +767,6 @@ update_weather_info (gpointer data)
 	weather_info_abort (priv->weather_info);
         weather_info_update (priv->weather_info,
                              &prefs, weather_info_updated, loc);
-
 #endif
 	return TRUE;
 }
@@ -848,6 +850,8 @@ setup_weather_updates (ClockLocation *loc)
 	/*fixme*/
 	priv->weather_info = gweather_info_new (wl, GWEATHER_FORECAST_STATE);
 	gweather_info_set_enabled_providers (priv->weather_info, GWEATHER_PROVIDER_ALL);
+	g_signal_connect (priv->weather_info, "updated",
+                      G_CALLBACK (weather_info_updated), loc);
 #else
 	priv->weather_info =
 		weather_info_new (wl, &prefs, weather_info_updated, loc);
