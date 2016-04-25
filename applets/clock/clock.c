@@ -2348,10 +2348,8 @@ cities_changed (GSettings    *settings,
 static void
 update_weather_locations (ClockData *cd)
 {
-#if GTK_CHECK_VERSION (3, 0, 0)
-	/* fixme: update units */
-#else
 	GList *locations, *l;
+#if !GTK_CHECK_VERSION (3, 0, 0)
         WeatherPrefs prefs = {
                 FORECAST_STATE,
                 FALSE,
@@ -2364,13 +2362,17 @@ update_weather_locations (ClockData *cd)
 
 	prefs.temperature_unit = cd->temperature_unit;
 	prefs.speed_unit = cd->speed_unit;
+#endif
 
         locations = cd->locations;
 
         for (l = locations; l; l = l->next) {
+#if GTK_CHECK_VERSION (3, 0, 0)
+		clock_location_set_weather_prefs (l->data, cd->temperature_unit, cd->speed_unit);
+#else
 		clock_location_set_weather_prefs (l->data, &prefs);
-	}
 #endif
+	}
 }
 
 static void

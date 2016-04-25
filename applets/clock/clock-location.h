@@ -95,10 +95,9 @@ const gchar *clock_location_get_weather_code (ClockLocation *loc);
 void         clock_location_set_weather_code (ClockLocation *loc, const gchar *code);
 #if GTK_CHECK_VERSION (3, 0, 0)
 GWeatherInfo *clock_location_get_weather_info (ClockLocation *loc);
-/*
 void         clock_location_set_weather_prefs (ClockLocation *loc,
-					       WeatherPrefs *weather_prefs);
-*/
+					       GWeatherTemperatureUnit temperature_unit,
+					       GWeatherSpeedUnit speed_unit);
 #else
 WeatherInfo *clock_location_get_weather_info (ClockLocation *loc);
 void         clock_location_set_weather_prefs (ClockLocation *loc,

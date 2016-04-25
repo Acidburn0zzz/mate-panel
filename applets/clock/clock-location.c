@@ -86,7 +86,6 @@ clock_location_find_and_ref (GList       *locations,
                              gfloat       longitude,
                              const gchar *code)
 {
-	g_printf("%s:%d\tname=%s city=%s timezone=%s code=%s\n", __FUNCTION__, __LINE__, name, city, timezone, code);
         GList *l;
         ClockLocationPrivate *priv;
 
@@ -103,11 +102,9 @@ clock_location_find_and_ref (GList       *locations,
         }
 
         if (l != NULL) {
-		g_printf ("%s:%d\tfound\n", __FUNCTION__, __LINE__);
                 return g_object_ref (CLOCK_LOCATION (l->data));
 	}
         else {
-		g_printf ("%s:%d\tnot found\n", __FUNCTION__, __LINE__);
                 return NULL;
 	}
 }
@@ -867,16 +864,26 @@ setup_weather_updates (ClockLocation *loc)
 #endif
 }
 
-#if !GTK_CHECK_VERSION (3, 0, 0)
+#if GTK_CHECK_VERSION (3, 0, 0)
+void
+clock_location_set_weather_prefs (ClockLocation *loc,
+				  GWeatherTemperatureUnit temperature_unit,
+				  GWeatherSpeedUnit speed_unit)
+#else
 void
 clock_location_set_weather_prefs (ClockLocation *loc,
 				  WeatherPrefs *prefs)
+#endif
 {
 	ClockLocationPrivate *priv = PRIVATE (loc);
 
+#if GTK_CHECK_VERSION (3, 0, 0)
+	priv->temperature_unit = temperature_unit;
+	priv->speed_unit = speed_unit;
+#else
 	priv->temperature_unit = prefs->temperature_unit;
 	priv->speed_unit = prefs->speed_unit;
+#endif
 
 	update_weather_info (loc);
 }
-#endif
