@@ -2876,7 +2876,27 @@ static void
 location_changed (GObject *object, GParamSpec *param, ClockData *cd)
 {
 #if GTK_CHECK_VERSION (3, 0, 0)
-	/*fixme: location_changed*/
+        GWeatherLocationEntry *entry = GWEATHER_LOCATION_ENTRY (object);
+        GWeatherLocation *gloc;
+        GWeatherTimezone *zone;
+        gboolean latlon_valid;
+        double latitude = 0.0, longitude = 0.0;
+
+        gloc = gweather_location_entry_get_location (entry);
+
+	latlon_valid = gloc && gweather_location_has_coords (gloc);
+        if (latlon_valid)
+                gweather_location_get_coords (gloc, &latitude, &longitude);
+        update_coords (cd, latlon_valid, latitude, longitude);
+
+        zone = gloc ? gweather_location_get_timezone (gloc) : NULL;
+        if (zone)
+                gweather_timezone_menu_set_tzid (cd->zone_combo, gweather_timezone_get_tzid (zone));
+        else
+                gweather_timezone_menu_set_tzid (cd->zone_combo, NULL);
+
+        if (gloc)
+                gweather_location_unref (gloc);
 #else
         MateWeatherLocationEntry *entry = MATEWEATHER_LOCATION_ENTRY (object);
         MateWeatherLocation *gloc;
