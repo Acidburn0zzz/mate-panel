@@ -236,7 +236,7 @@ container_child_background_set (GObject      *source_object,
 	mate_panel_applet_container_child_set_finish (container, res, NULL);
 
 	if (frame->priv->bg_cancellable)
-		g_clear_object (&frame->priv->bg_cancellable);
+		g_object_unref (frame->priv->bg_cancellable);
 
 	frame->priv->bg_cancellable = NULL;
 }
@@ -329,7 +329,8 @@ mate_panel_applet_frame_dbus_finalize (GObject *object)
 	MatePanelAppletFrameDBus *frame = MATE_PANEL_APPLET_FRAME_DBUS (object);
 
 	if (frame->priv->bg_cancellable)
-		g_cancellable_cancel (frame->priv->bg_cancellable);
+		g_object_unref (frame->priv->bg_cancellable);
+	frame->priv->bg_cancellable = NULL;
 
 	G_OBJECT_CLASS (mate_panel_applet_frame_dbus_parent_class)->finalize (object);
 }
@@ -347,6 +348,7 @@ mate_panel_applet_frame_dbus_init (MatePanelAppletFrameDBus *frame)
 	gtk_widget_show (container);
 	gtk_container_add (GTK_CONTAINER (frame), container);
 	frame->priv->container = MATE_PANEL_APPLET_CONTAINER (container);
+	frame->priv->bg_cancellable = NULL;
 
 	g_signal_connect (container, "child-property-changed::flags",
 			  G_CALLBACK (mate_panel_applet_frame_dbus_flags_changed),
