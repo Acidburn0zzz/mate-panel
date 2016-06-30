@@ -1789,18 +1789,16 @@ panel_widget_style_set (GtkWidget *widget, GtkStyle  *previous_style)
 }
 #endif
 
+#if !GTK_CHECK_VERSION(3, 18, 0)
 static gboolean
 toplevel_configure_event (GtkWidget         *widget,
 			  GdkEventConfigure *event,
 			  PanelWidget       *panel)
 {
-#if !GTK_CHECK_VERSION(3, 18, 0)
 	panel_widget_set_background_region (panel);
-#endif
 	return FALSE;
 }
 
-#if !GTK_CHECK_VERSION(3, 18, 0)
 static void
 panel_widget_realize (GtkWidget *widget)
 {
@@ -1837,7 +1835,7 @@ panel_widget_realize (GtkWidget *widget)
 
 	panel_background_realized (&panel->background, window);
 }
-#endif
+
 static void
 panel_widget_unrealize (GtkWidget *widget)
 {
@@ -1852,6 +1850,7 @@ panel_widget_unrealize (GtkWidget *widget)
 
 	GTK_WIDGET_CLASS (panel_widget_parent_class)->unrealize (widget);
 }
+#endif
 
 static void
 panel_widget_finalize (GObject *obj)

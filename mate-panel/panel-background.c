@@ -1469,36 +1469,6 @@ panel_background_set_color_background_on_widget (PanelBackground *background,
 }
 #endif
 
-#if GTK_CHECK_VERSION (3, 0, 0)
-static GtkStyleProperties *
-_panel_background_get_widget_style_properties (GtkWidget *widget, gboolean create_if_needed)
-{
-	GtkStyleProperties *properties;
-
-	properties = g_object_get_data (G_OBJECT (widget), "panel-object-style-props");
-	if (!properties && create_if_needed) {
-		properties = gtk_style_properties_new ();
-		g_object_set_data_full (G_OBJECT (widget), "panel-object-style-props",
-					properties, (GDestroyNotify) g_object_unref);
-	}
-	return properties;
-}
-
-static void
-_panel_background_reset_widget_style_properties (GtkWidget *widget)
-{
-	GtkStyleProperties *properties;
-
-	properties = _panel_background_get_widget_style_properties (widget, FALSE);
-
-	if (properties)
-		gtk_style_context_remove_provider (gtk_widget_get_style_context (widget),
-						   GTK_STYLE_PROVIDER (properties));
-
-	g_object_set_data (G_OBJECT (widget), "panel-object-style-props", NULL);
-}
-#endif
-
 #if !GTK_CHECK_VERSION (3, 0, 0)
 void
 panel_background_change_background_on_widget (PanelBackground *background,

@@ -442,7 +442,7 @@ static void panel_toplevel_begin_grab_op(PanelToplevel* toplevel, PanelGrabOpTyp
 	GdkDisplay *display;
 	GdkDevice *pointer;
 	GdkDevice *keyboard;
-#if GTK_CHECK_VERSION (3, 0, 0)
+#if GTK_CHECK_VERSION (3, 20, 0)
 	GdkSeat *seat;
 #else
 	GdkDeviceManager *device_manager;
@@ -546,7 +546,7 @@ static void panel_toplevel_end_grab_op (PanelToplevel* toplevel, guint32 time_)
 	GdkDisplay *display;
 	GdkDevice *pointer;
 	GdkDevice *keyboard;
-#if GTK_CHECK_VERSION (3, 0, 0)
+#if GTK_CHECK_VERSION (3, 20, 0)
 	GdkSeat *seat;
 #else
 	GdkDeviceManager *device_manager;
@@ -1581,7 +1581,9 @@ void panel_toplevel_update_edges(PanelToplevel* toplevel)
 	PanelFrameEdge   edges;
 	PanelFrameEdge   inner_edges;
 	PanelFrameEdge   outer_edges;
+#if !GTK_CHECK_VERSION (3, 0, 0)
 	PanelBackground *background;
+#endif
 	int              monitor_width, monitor_height;
 	int              width, height;
 	gboolean         inner_frame = FALSE;
@@ -3792,7 +3794,7 @@ panel_toplevel_configure_event (GtkWidget	  *widget,
 
 	set_background_region (toplevel);
 
-	return;
+	return TRUE;
 }
 #endif
 

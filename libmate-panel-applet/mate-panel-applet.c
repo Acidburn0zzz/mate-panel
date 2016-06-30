@@ -2619,13 +2619,6 @@ int mate_panel_applet_factory_main(const gchar* factory_id, gboolean out_process
 
 
 #if GTK_CHECK_VERSION (3, 18, 0)
-
-void
-mate_panel_applet_set_background_widget (MatePanelApplet *applet,
-				    GtkWidget   *widget)
-{
-}
-
 #elif GTK_CHECK_VERSION (3, 0, 0)
 void
 mate_panel_applet_set_background_widget (MatePanelApplet *applet,

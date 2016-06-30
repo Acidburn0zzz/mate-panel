@@ -505,12 +505,6 @@ panel_multiscreen_reinit (void)
 }
 
 int
-panel_multiscreen_screens (void)
-{
-	return screens;
-}
-
-int
 panel_multiscreen_monitors (GdkScreen *screen)
 {
 	int n_screen;
