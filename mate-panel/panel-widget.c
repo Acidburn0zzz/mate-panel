@@ -63,15 +63,19 @@ static gboolean mate_panel_applet_in_drag = FALSE;
 static GtkWidget *saved_focus_widget = NULL;
 
 #if GTK_CHECK_VERSION (3, 0, 0)
+static void panel_widget_get_preferred_size (GtkWidget	  *widget,
+					     GtkRequisition *minimum_size,
+					     GtkRequisition *natural_size);
 static void panel_widget_get_preferred_width (GtkWidget *widget,
-					 gint *minimum_width,
-					 gint *natural_width);
+					      gint *minimum_width,
+					      gint *natural_width);
 static void panel_widget_get_preferred_height (GtkWidget *widget,
-					 gint *minimum_height,
-					 gint *natural_height);
-#endif
+					       gint *minimum_height,
+					       gint *natural_height);
+#else
 static void panel_widget_size_request   (GtkWidget        *widget,
 					 GtkRequisition   *requisition);
+#endif
 static void panel_widget_size_allocate  (GtkWidget        *widget,
 					 GtkAllocation    *allocation);
 static void panel_widget_cadd           (GtkContainer     *container,
@@ -1232,7 +1236,13 @@ panel_widget_right_stick(PanelWidget *panel,int old_size)
 }
 
 static void
-panel_widget_size_request(GtkWidget *widget, GtkRequisition *requisition)
+#if GTK_CHECK_VERSION (3, 0, 0)
+panel_widget_get_preferred_size(GtkWidget	     *widget,
+				GtkRequisition *minimum_size,
+				GtkRequisition *natural_size)
+#else
+panel_widget_size_request(GtkWidget *widget, GtkRequisition *minimum_size)
+#endif
 {
 	PanelWidget *panel;
 	GList *list;
@@ -1240,52 +1250,80 @@ panel_widget_size_request(GtkWidget *widget, GtkRequisition *requisition)
 	gboolean dont_fill;
 
 	g_return_if_fail(PANEL_IS_WIDGET(widget));
-	g_return_if_fail(requisition!=NULL);
+	g_return_if_fail(minimum_size != NULL);
 
 	panel = PANEL_WIDGET(widget);
 
-	if(panel->orient == GTK_ORIENTATION_HORIZONTAL) {
-		requisition->width = 0;
-		requisition->height = panel->sz;
+	if (panel->orient == GTK_ORIENTATION_HORIZONTAL) {
+		minimum_size->width = 0;
+		minimum_size->height = panel->sz;
 	} else {
-		requisition->height = 0;
-		requisition->width = panel->sz;
+		minimum_size->height = 0;
+		minimum_size->width = panel->sz;
 	}
+#if GTK_CHECK_VERSION (3, 0, 0)
+	natural_size->width = minimum_size->width;
+	natural_size->height = minimum_size->height;
+#endif
 
 	ad_with_hints = NULL;
 
-	for(list = panel->applet_list; list!=NULL; list = g_list_next(list)) {
+	for (list = panel->applet_list; list!=NULL; list = g_list_next(list)) {
 		AppletData *ad = list->data;
-		GtkRequisition chreq;
+		GtkRequisition child_min_size;
 #if GTK_CHECK_VERSION (3, 0, 0)
-		gtk_widget_get_preferred_size (ad->applet, &chreq, NULL);
+		GtkRequisition child_natural_size;
+		gtk_widget_get_preferred_size(ad->applet,
+		                              &child_min_size,
+		                              &child_natural_size);
 #else
-		gtk_widget_size_request(ad->applet, &chreq);
+		gtk_widget_size_request(ad->applet, &child_min_size);
 #endif
 
 		if (panel->orient == GTK_ORIENTATION_HORIZONTAL) {
-			if (requisition->height < chreq.height && !ad->size_constrained)
-				requisition->height = chreq.height;
+			if (minimum_size->height < child_min_size.height &&
+			    !ad->size_constrained)
+				minimum_size->height = child_min_size.height;
+#if GTK_CHECK_VERSION (3, 0, 0)
+			if (natural_size->height < child_natural_size.height &&
+			    !ad->size_constrained)
+				natural_size->height = child_natural_size.height;
+#endif
 
 			if (panel->packed && ad->expand_major && ad->size_hints)
 				ad_with_hints = g_list_prepend (ad_with_hints,
 								ad);
 
 			else if (panel->packed)
-				requisition->width += chreq.width;
+			{
+				minimum_size->width += child_min_size.width;
+#if GTK_CHECK_VERSION (3, 0, 0)
+				natural_size->width += child_natural_size.width;
+#endif
+			}
 		} else {
-			if (requisition->width < chreq.width && !ad->size_constrained)
-				requisition->width = chreq.width;
+			if (minimum_size->width < child_min_size.width &&
+			    !ad->size_constrained)
+				minimum_size->width = child_min_size.width;
+#if GTK_CHECK_VERSION (3, 0, 0)
+			if (natural_size->width < child_min_size.width &&
+			    !ad->size_constrained)
+				natural_size->width = child_min_size.width;
+#endif
 
 			if (panel->packed && ad->expand_major && ad->size_hints)
 				ad_with_hints = g_list_prepend (ad_with_hints,
 								ad);
 
 			else if (panel->packed)
-				requisition->height += chreq.height;
+			{
+				minimum_size->height += child_min_size.height;
+#if GTK_CHECK_VERSION (3, 0, 0)
+				natural_size->height += child_natural_size.height;
+#endif
+			}
 		}
 	}
-
 
 	panel->nb_applets_size_hints = 0;
 	if (panel->applets_hints != NULL)
@@ -1295,11 +1333,17 @@ panel_widget_size_request(GtkWidget *widget, GtkRequisition *requisition)
 		g_free (panel->applets_using_hint);
 	panel->applets_using_hint = NULL;
 
-	if(!panel->packed) {
-		if(panel->orient == GTK_ORIENTATION_HORIZONTAL) {
-			requisition->width = panel->size;
+	if (!panel->packed) {
+		if (panel->orient == GTK_ORIENTATION_HORIZONTAL) {
+			minimum_size->width = panel->size;
+#if GTK_CHECK_VERSION (3, 0, 0)
+			natural_size->width = panel->size;
+#endif
 		} else {
-			requisition->height = panel->size;
+			minimum_size->height = panel->size;
+#if GTK_CHECK_VERSION (3, 0, 0)
+			natural_size->height = panel->size;
+#endif
 		}
 	} else {
 		/* put the list in the correct order: this is important
@@ -1329,37 +1373,51 @@ panel_widget_size_request(GtkWidget *widget, GtkRequisition *requisition)
 	dont_fill = panel->packed && panel->nb_applets_size_hints != 0;
 
 	if (panel->orient == GTK_ORIENTATION_HORIZONTAL) {
-		if (requisition->width < 12 && !dont_fill)
-			requisition->width = 12;
-		if (requisition->height < 12)
-			requisition->height = 12;
+		if (minimum_size->width < 12 && !dont_fill)
+			minimum_size->width = 12;
+		if (minimum_size->height < 12)
+			minimum_size->height = 12;
+#if GTK_CHECK_VERSION (3, 0, 0)
+		if (natural_size->width < 12 && !dont_fill)
+			natural_size->width = 12;
+		if (natural_size->height < 12)
+			natural_size->height = 12;
+#endif
 	} else {
-		if (requisition->width < 12)
-			requisition->width = 12;
-		if (requisition->height < 12 && !dont_fill)
-			requisition->height = 12;
+		if (minimum_size->width < 12)
+			minimum_size->width = 12;
+		if (minimum_size->height < 12 && !dont_fill)
+			minimum_size->height = 12;
+#if GTK_CHECK_VERSION (3, 0, 0)
+		if (natural_size->width < 12)
+			natural_size->width = 12;
+		if (natural_size->height < 12 && !dont_fill)
+			natural_size->height = 12;
+#endif
 	}
 }
 
 #if GTK_CHECK_VERSION (3, 0, 0)
 static void
-panel_widget_get_preferred_width (GtkWidget *widget,
-								  gint *minimum_width,
-								  gint *natural_width)
+panel_widget_get_preferred_width(GtkWidget *widget,
+				 gint	   *minimum_width,
+				 gint	   *natural_width)
 {
-	GtkRequisition req;
-	panel_widget_size_request (widget, &req);
-	*minimum_width = *natural_width = req.width;
+	GtkRequisition req_min, req_natural;
+	panel_widget_get_preferred_size(widget, &req_min, &req_natural);
+	*minimum_width = req_min.width;
+	*natural_width = req_natural.width;
 }
 
 static void
-panel_widget_get_preferred_height (GtkWidget *widget,
-								   gint *minimum_height,
-								   gint *natural_height)
+panel_widget_get_preferred_height(GtkWidget *widget,
+				  gint	    *minimum_height,
+				  gint	    *natural_height)
 {
-	GtkRequisition req;
-	panel_widget_size_request (widget, &req);
-	*minimum_height = *natural_height = req.height;
+	GtkRequisition req_min, req_natural;
+	panel_widget_get_preferred_size(widget, &req_min, &req_natural);
+	*minimum_height = req_min.height;
+	*natural_height = req_natural.height;
 }
 #endif
 
@@ -1625,7 +1683,10 @@ panel_widget_is_cursor(PanelWidget *panel, int overlap)
 	   !gtk_widget_get_visible(widget))
 		return FALSE;
 
-#if GTK_CHECK_VERSION(3, 0, 0)
+#if GTK_CHECK_VERSION(3, 20, 0)
+	device = gdk_seat_get_pointer (gdk_display_get_default_seat (gtk_widget_get_display (widget)));
+	gdk_window_get_device_position(gtk_widget_get_window (widget), device, &x, &y, NULL);
+#elif GTK_CHECK_VERSION(3, 0, 0)
 	device = gdk_device_manager_get_client_pointer (gdk_display_get_device_manager (gtk_widget_get_display (widget)));
 	gdk_window_get_device_position(gtk_widget_get_window (widget), device, &x, &y, NULL);
 #else
@@ -2027,7 +2088,11 @@ panel_widget_applet_drag_start (PanelWidget *panel,
 #if GTK_CHECK_VERSION (3, 0, 0)
 		GdkDisplay *display;
 		GdkDevice *pointer;
+#if GTK_CHECK_VERSION(3, 20, 0)
+		GdkSeat *seat;
+#else
 		GdkDeviceManager *device_manager;
+#endif
 #endif
 
 		fleur_cursor = gdk_cursor_new_for_display (gdk_display_get_default (),
@@ -2035,8 +2100,13 @@ panel_widget_applet_drag_start (PanelWidget *panel,
 
 #if GTK_CHECK_VERSION (3, 0, 0)
 		display = gdk_window_get_display (window);
+#if GTK_CHECK_VERSION(3, 20, 0)
+		seat = gdk_display_get_default_seat (display);
+		pointer = gdk_seat_get_pointer (seat);
+#else
 		device_manager = gdk_display_get_device_manager (display);
 		pointer = gdk_device_manager_get_client_pointer (device_manager);
+#endif
 		status = gdk_device_grab (pointer, window,
 					  GDK_OWNERSHIP_NONE, FALSE,
 					  APPLET_EVENT_MASK,
@@ -2062,7 +2132,11 @@ panel_widget_applet_drag_start (PanelWidget *panel,
 void
 panel_widget_applet_drag_end (PanelWidget *panel)
 {
-#if GTK_CHECK_VERSION (3, 0, 0)
+#if GTK_CHECK_VERSION(3, 20, 0)
+	GdkDisplay *display;
+	GdkDevice *pointer;
+	GdkSeat *seat;
+#elif GTK_CHECK_VERSION (3, 0, 0)
 	GdkDisplay *display;
 	GdkDevice *pointer;
 	GdkDeviceManager *device_manager;
@@ -2072,7 +2146,13 @@ panel_widget_applet_drag_end (PanelWidget *panel)
 
 	if (panel->currently_dragged_applet == NULL)
 		return;
-#if GTK_CHECK_VERSION (3, 0, 0)
+#if GTK_CHECK_VERSION(3, 20, 0)
+	display = gtk_widget_get_display (GTK_WIDGET (panel));
+	seat = gdk_display_get_default_seat (display);
+	pointer = gdk_seat_get_pointer (seat);
+
+	gdk_device_ungrab (pointer, GDK_CURRENT_TIME);
+#elif GTK_CHECK_VERSION (3, 0, 0)
 	display = gtk_widget_get_display (GTK_WIDGET (panel));
 	device_manager = gdk_display_get_device_manager (display);
 	pointer = gdk_device_manager_get_client_pointer (device_manager);
@@ -2099,7 +2179,10 @@ panel_widget_get_cursorloc (PanelWidget *panel)
 
 	g_return_val_if_fail (PANEL_IS_WIDGET (panel), -1);
 
-#if GTK_CHECK_VERSION (3, 0, 0)
+#if GTK_CHECK_VERSION (3, 20, 0)
+	device = gdk_seat_get_pointer (gdk_display_get_default_seat (gtk_widget_get_display (GTK_WIDGET(panel))));
+	gdk_window_get_device_position(gtk_widget_get_window (GTK_WIDGET(panel)), device, &x, &y, NULL);
+#elif GTK_CHECK_VERSION (3, 0, 0)
 	device = gdk_device_manager_get_client_pointer (gdk_display_get_device_manager (gtk_widget_get_display (GTK_WIDGET(panel))));
 	gdk_window_get_device_position(gtk_widget_get_window (GTK_WIDGET(panel)), device, &x, &y, NULL);
 #else
@@ -2329,12 +2412,15 @@ panel_widget_applet_move_to_cursor (PanelWidget *panel)
 		}
 	}
 
-#if GTK_CHECK_VERSION (3, 0, 0)
-	device = gdk_device_manager_get_client_pointer (gdk_display_get_device_manager (gtk_widget_get_display (GTK_WIDGET(panel))));
-	gdk_window_get_device_position(gtk_widget_get_window (GTK_WIDGET(panel)), device, NULL, NULL, &mods);
+#if GTK_CHECK_VERSION (3, 20, 0)
+	device = gdk_seat_get_pointer (gdk_display_get_default_seat (gtk_widget_get_display (GTK_WIDGET (panel))));
+	gdk_window_get_device_position (gtk_widget_get_window (GTK_WIDGET(panel)), device, NULL, NULL, &mods);
+#elif GTK_CHECK_VERSION (3, 0, 0)
+	device = gdk_device_manager_get_client_pointer (gdk_display_get_device_manager (gtk_widget_get_display (GTK_WIDGET (panel))));
+	gdk_window_get_device_position (gtk_widget_get_window (GTK_WIDGET(panel)), device, NULL, NULL, &mods);
 #else
-	gdk_window_get_pointer(gtk_widget_get_window (GTK_WIDGET(panel)),
-			       NULL,NULL,&mods);
+	gdk_window_get_pointer (gtk_widget_get_window (GTK_WIDGET(panel)),
+				NULL, NULL, &mods);
 #endif
 
 	movement = PANEL_SWITCH_MOVE;
@@ -2391,7 +2477,10 @@ move_timeout_handler(gpointer data)
 
 		widget = panel->currently_dragged_applet->applet;
 
-#if GTK_CHECK_VERSION (3, 0, 0)
+#if GTK_CHECK_VERSION (3, 20, 0)
+		device = gdk_seat_get_pointer (gdk_display_get_default_seat (gtk_widget_get_display (widget)));
+		gdk_window_get_device_position (gtk_widget_get_window (widget), device, &x, &y, NULL);
+#elif GTK_CHECK_VERSION (3, 0, 0)
 		device = gdk_device_manager_get_client_pointer (gdk_display_get_device_manager (gtk_widget_get_display (widget)));
 		gdk_window_get_device_position(gtk_widget_get_window (widget), device, &x, &y, NULL);
 #else
@@ -2834,7 +2923,11 @@ panel_widget_reparent (PanelWidget *old_panel,
 	panel_widget_reset_saved_focus (old_panel);
 	if (gtk_container_get_focus_child (GTK_CONTAINER (old_panel)) == applet)
 		focus_widget = gtk_window_get_focus (GTK_WINDOW (old_panel->toplevel));
-	gtk_widget_reparent (applet, GTK_WIDGET (new_panel));
+
+	g_object_ref (applet);
+	gtk_container_remove (GTK_CONTAINER (old_panel), applet);
+	gtk_container_add (GTK_CONTAINER (new_panel), applet);
+	g_object_unref (applet);
 
 	if (info && info->type == PANEL_OBJECT_APPLET)
 		mate_panel_applet_frame_set_panel (MATE_PANEL_APPLET_FRAME (ad->applet), new_panel);

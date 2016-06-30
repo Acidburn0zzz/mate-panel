@@ -35,6 +35,8 @@
 #include "panel-lockdown.h"
 #include "panel-schemas.h"
 
+#define SMALL_ICON_SIZE 20
+
 static GSList *registered_applets = NULL;
 static GSList *queued_position_saves = NULL;
 static guint   queued_position_source = 0;
@@ -65,8 +67,6 @@ mate_panel_applet_set_dnd_enabled (AppletInfo *info,
 		break;
 	case PANEL_OBJECT_APPLET:
 		break;
-	case PANEL_OBJECT_LOGOUT:
-	case PANEL_OBJECT_LOCK:
 	case PANEL_OBJECT_ACTION:
 		panel_action_button_set_dnd_enabled (PANEL_ACTION_BUTTON (info->widget),
 						     dnd_enabled);
@@ -272,8 +272,6 @@ applet_callback_callback (GtkWidget      *widget,
 			PANEL_MENU_BUTTON (menu->info->widget), menu->name);
 		break;
 	case PANEL_OBJECT_ACTION:
-	case PANEL_OBJECT_LOGOUT:
-	case PANEL_OBJECT_LOCK:
 		panel_action_button_invoke_menu (
 			PANEL_ACTION_BUTTON (menu->info->widget), menu->name);
 		break;
@@ -667,9 +665,12 @@ mate_panel_applet_position_menu (GtkMenu   *menu,
 #endif
 
 	gdk_window_get_origin (gtk_widget_get_window (applet), &menu_x, &menu_y);
-#if GTK_CHECK_VERSION (3, 0, 0)
+#if GTK_CHECK_VERSION(3, 20, 0)
+	device = gdk_seat_get_pointer (gdk_display_get_default_seat (gtk_widget_get_display (applet)));
+	gdk_window_get_device_position (gtk_widget_get_window (applet), device, &pointer_x, &pointer_y, NULL);
+#elif GTK_CHECK_VERSION (3, 0, 0)
 	device = gdk_device_manager_get_client_pointer (gdk_display_get_device_manager (gtk_widget_get_display (applet)));
-	gdk_window_get_device_position(gtk_widget_get_window (applet), device, &pointer_x, &pointer_y, NULL);
+	gdk_window_get_device_position (gtk_widget_get_window (applet), device, &pointer_x, &pointer_y, NULL);
 #else
 	gtk_widget_get_pointer (applet, &pointer_x, &pointer_y);
 #endif

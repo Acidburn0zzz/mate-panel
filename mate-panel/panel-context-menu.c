@@ -71,6 +71,10 @@ panel_context_menu_check_for_screen (GtkWidget *w,
 		times++;
 		if (times == 3) {
 			times = 0;
+#if !GTK_CHECK_VERSION (3, 0, 0)
+			/* FIXME re-add once GTK3 support is fixed */
+			start_screen_check ();
+#endif
 		}
 	}
 	return FALSE;
@@ -209,11 +213,7 @@ panel_context_menu_build_edition (PanelWidget *panel_widget,
 	GtkWidget *image;
 
 	menuitem = gtk_image_menu_item_new_with_mnemonic (_("_Add to Panel..."));
-#if GTK_CHECK_VERSION (3, 10, 0)
 	image = gtk_image_new_from_icon_name ("list-add", GTK_ICON_SIZE_MENU);
-#else
-	image = gtk_image_new_from_stock (GTK_STOCK_ADD, GTK_ICON_SIZE_MENU);
-#endif
 	gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menuitem), image);
 	gtk_widget_show (menuitem);
 	gtk_menu_shell_append (GTK_MENU_SHELL (menu), menuitem);
@@ -224,13 +224,8 @@ panel_context_menu_build_edition (PanelWidget *panel_widget,
 		gtk_widget_set_sensitive (menuitem, FALSE);
 
 	menuitem = gtk_image_menu_item_new_with_mnemonic (_("_Properties"));
-#if GTK_CHECK_VERSION (3, 10, 0)
 	image = gtk_image_new_from_icon_name ("document-properties",
-					  GTK_ICON_SIZE_MENU);
-#else
-	image = gtk_image_new_from_stock (GTK_STOCK_PROPERTIES,
-					  GTK_ICON_SIZE_MENU);
-#endif
+					      GTK_ICON_SIZE_MENU);
 	gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menuitem), image);
 	gtk_widget_show (menuitem);
 	gtk_menu_shell_append (GTK_MENU_SHELL (menu), menuitem);
@@ -239,8 +234,8 @@ panel_context_menu_build_edition (PanelWidget *panel_widget,
 				  panel_widget->toplevel);
 
 	menuitem = gtk_image_menu_item_new_with_mnemonic (_("_Delete This Panel"));
-	image = gtk_image_new_from_stock (GTK_STOCK_DELETE,
-					  GTK_ICON_SIZE_MENU);
+	image = gtk_image_new_from_icon_name ("edit-delete",
+					      GTK_ICON_SIZE_MENU);
 	gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menuitem), image);
 	gtk_widget_show (menuitem);
 	gtk_menu_shell_append (GTK_MENU_SHELL (menu), menuitem);
@@ -254,11 +249,7 @@ panel_context_menu_build_edition (PanelWidget *panel_widget,
 	add_menu_separator (menu);
 
 	menuitem = gtk_image_menu_item_new_with_mnemonic (_("_New Panel"));
-#if GTK_CHECK_VERSION (3, 10, 0)
 	image = gtk_image_new_from_icon_name ("document-new", GTK_ICON_SIZE_MENU);
-#else
-	image = gtk_image_new_from_stock (GTK_STOCK_NEW, GTK_ICON_SIZE_MENU);
-#endif
 	gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menuitem), image);
 	gtk_widget_show (menuitem);
 	gtk_menu_shell_append (GTK_MENU_SHELL (menu), menuitem);
@@ -302,11 +293,7 @@ panel_context_menu_create (PanelWidget *panel)
 		panel_context_menu_build_edition (panel, retval);
 
 	menuitem = gtk_image_menu_item_new_with_mnemonic (_("_Help"));
-#if GTK_CHECK_VERSION (3, 10, 0)
 	image = gtk_image_new_from_icon_name ("help-browser", GTK_ICON_SIZE_MENU);
-#else
-	image = gtk_image_new_from_stock (GTK_STOCK_HELP, GTK_ICON_SIZE_MENU);
-#endif
 	gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menuitem), image);
 	gtk_widget_show (menuitem);
 	gtk_menu_shell_append (GTK_MENU_SHELL (retval), menuitem);
@@ -314,13 +301,8 @@ panel_context_menu_create (PanelWidget *panel)
 			  G_CALLBACK (panel_context_menu_show_help), NULL);
 
 	menuitem = gtk_image_menu_item_new_with_mnemonic (_("A_bout Panels"));
-#if GTK_CHECK_VERSION (3, 10, 0)
 	image = gtk_image_new_from_icon_name ("help-about",
-					  GTK_ICON_SIZE_MENU);
-#else
-	image = gtk_image_new_from_stock (GTK_STOCK_ABOUT,
-					  GTK_ICON_SIZE_MENU);
-#endif
+					      GTK_ICON_SIZE_MENU);
 	gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menuitem), image);
 	gtk_widget_show (menuitem);
 	gtk_menu_shell_append (GTK_MENU_SHELL (retval), menuitem);

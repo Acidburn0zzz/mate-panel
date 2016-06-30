@@ -442,7 +442,11 @@ static void panel_toplevel_begin_grab_op(PanelToplevel* toplevel, PanelGrabOpTyp
 	GdkDisplay *display;
 	GdkDevice *pointer;
 	GdkDevice *keyboard;
+#if GTK_CHECK_VERSION (3, 0, 0)
+	GdkSeat *seat;
+#else
 	GdkDeviceManager *device_manager;
+#endif
 #endif
 
 	if (toplevel->priv->state != PANEL_STATE_NORMAL ||
@@ -501,8 +505,13 @@ static void panel_toplevel_begin_grab_op(PanelToplevel* toplevel, PanelGrabOpTyp
 	                                     cursor_type);
 #if GTK_CHECK_VERSION (3, 0, 0)
 	display = gdk_window_get_display (window);
+#if GTK_CHECK_VERSION(3, 20, 0)
+	seat = gdk_display_get_default_seat (display);
+	pointer = gdk_seat_get_pointer (seat);
+#else
 	device_manager = gdk_display_get_device_manager (display);
 	pointer = gdk_device_manager_get_client_pointer (device_manager);
+#endif
 	keyboard = gdk_device_get_associated_device (pointer);
 
 	gdk_device_grab (pointer, window,
@@ -537,7 +546,11 @@ static void panel_toplevel_end_grab_op (PanelToplevel* toplevel, guint32 time_)
 	GdkDisplay *display;
 	GdkDevice *pointer;
 	GdkDevice *keyboard;
+#if GTK_CHECK_VERSION (3, 0, 0)
+	GdkSeat *seat;
+#else
 	GdkDeviceManager *device_manager;
+#endif
 #endif
 
 	g_return_if_fail (toplevel->priv->grab_op != PANEL_GRAB_OP_NONE);
@@ -551,8 +564,13 @@ static void panel_toplevel_end_grab_op (PanelToplevel* toplevel, guint32 time_)
 
 #if GTK_CHECK_VERSION (3, 0, 0)
 	display = gtk_widget_get_display (widget);
+#if GTK_CHECK_VERSION(3, 20, 0)
+	seat = gdk_display_get_default_seat (display);
+	pointer = gdk_seat_get_pointer (seat);
+#else
 	device_manager = gdk_display_get_device_manager (display);
 	pointer = gdk_device_manager_get_client_pointer (device_manager);
+#endif
 	keyboard = gdk_device_get_associated_device (pointer);
 
 	gdk_device_ungrab (pointer, time_);
@@ -866,12 +884,12 @@ static gboolean panel_toplevel_warp_pointer_increment(PanelToplevel* toplevel, i
 
 	screen = gtk_window_get_screen (GTK_WINDOW (toplevel));
 	root_window = gdk_screen_get_root_window (screen);
-
-#if GTK_CHECK_VERSION (3, 0, 0)
-	GdkDisplay *display = gdk_screen_get_display (screen);
-	GdkDeviceManager *device_manager = gdk_display_get_device_manager (display);
-	device = gdk_device_manager_get_client_pointer (device_manager);
-	gdk_window_get_device_position (root_window, device, &new_x, &new_y, NULL);
+#if GTK_CHECK_VERSION(3, 20, 0)
+	device = gdk_seat_get_pointer (gdk_display_get_default_seat (gtk_widget_get_display (GTK_WIDGET(root_window))));
+	gdk_window_get_device_position (gtk_widget_get_window (GTK_WIDGET (root_window)), device, &new_x, &new_y, NULL);
+#elif GTK_CHECK_VERSION (3, 0, 0)
+	device = gdk_device_manager_get_client_pointer (gdk_display_get_device_manager (gtk_widget_get_display (GTK_WIDGET(root_window))));
+	gdk_window_get_device_position (gtk_widget_get_window (GTK_WIDGET (root_window)), device, &new_x, &new_y, NULL);
 #else
 	gdk_window_get_pointer (root_window, &new_x, &new_y, NULL);
 #endif
@@ -1379,14 +1397,20 @@ static gboolean panel_toplevel_contains_pointer(PanelToplevel* toplevel)
 	GdkDisplay *display;
 	GdkScreen  *screen;
 	GtkWidget  *widget;
-#if GTK_CHECK_VERSION (3, 0, 0)
+#if GTK_CHECK_VERSION(3, 20, 0)
+	GdkSeat *seat;
+	GdkDevice *pointer;
+#elif GTK_CHECK_VERSION (3, 0, 0)
 	GdkDeviceManager *device_manager;
 	GdkDevice *pointer;
 #endif
 	int         x, y;
 
 	display = gdk_display_get_default ();
-#if GTK_CHECK_VERSION (3, 0, 0)
+#if GTK_CHECK_VERSION(3, 20, 0)
+	seat = gdk_display_get_default_seat (display);
+	pointer = gdk_seat_get_pointer (seat);
+#elif GTK_CHECK_VERSION (3, 0, 0)
 	device_manager = gdk_display_get_device_manager (display);
 	pointer = gdk_device_manager_get_client_pointer (device_manager);
 #endif
@@ -1571,9 +1595,7 @@ void panel_toplevel_update_edges(PanelToplevel* toplevel)
 	height = toplevel->priv->geometry.height;
 
 	edges = PANEL_EDGE_NONE;
-#if GTK_CHECK_VERSION (3, 18, 0)
-	background = &toplevel->background;
-#else
+#if !GTK_CHECK_VERSION (3, 0, 0)
 	background = &toplevel->priv->panel_widget->background;
 #endif
 
@@ -3139,7 +3161,6 @@ panel_toplevel_realize (GtkWidget *widget)
 	GdkScreen *screen;
 	GdkVisual *visual;
 	GdkWindow *window;
-	GdkGeometry geometry;
 
 	toplevel = PANEL_TOPLEVEL (widget);
 
@@ -3329,6 +3350,7 @@ panel_toplevel_get_preferred_height (GtkWidget *widget,
 #endif
 
 #if GTK_CHECK_VERSION (3, 18, 0)
+static void
 set_background_region (PanelToplevel *toplevel)
 {
 	GtkWidget *widget;
@@ -3760,7 +3782,7 @@ panel_toplevel_button_release_event (GtkWidget      *widget,
 	return TRUE;
 }
 #if GTK_CHECK_VERSION (3, 18, 0)
-static void
+static gboolean
 panel_toplevel_configure_event (GtkWidget	  *widget,
 				GdkEventConfigure *event)
 {	

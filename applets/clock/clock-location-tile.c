@@ -17,10 +17,6 @@
 #include "clock-marshallers.h"
 #include "set-timezone.h"
 
-#if GTK_CHECK_VERSION (3, 0, 0)
-#define gtk_hbox_new(X,Y) gtk_box_new(GTK_ORIENTATION_HORIZONTAL,Y)
-#define gtk_vbox_new(X,Y) gtk_box_new(GTK_ORIENTATION_VERTICAL,Y)
-#endif
 
 #if GTK_CHECK_VERSION (3, 0, 0)
 G_DEFINE_TYPE (ClockLocationTile, clock_location_tile, GTK_TYPE_BIN)
@@ -297,13 +293,11 @@ clock_location_tile_fill (ClockLocationTile *this)
 #if GTK_CHECK_VERSION (3, 0, 0)
         tile = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
         head_section = gtk_box_new (GTK_ORIENTATION_VERTICAL, 0);
-#else
-        tile = gtk_hbox_new (FALSE, 6);
-#if GTK_CHECK_VERSION (3, 0, 0)
         gtk_widget_set_margin_top (tile, 3);
         gtk_widget_set_margin_bottom (tile, 3);
         gtk_widget_set_margin_start (tile, 3);
-#endif
+#else
+        tile = gtk_hbox_new (FALSE, 6);
         head_section = gtk_vbox_new (FALSE, 0);
 #endif
 
