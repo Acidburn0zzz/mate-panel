@@ -146,7 +146,11 @@ struct _PanelToplevelPrivate {
 
 	PanelWidget            *panel_widget;
 	PanelFrame             *inner_frame;
+#if GTK_CHECK_VERSION (3, 0, 0)
+	GtkWidget              *grid;
+#else
 	GtkWidget              *table;
+#endif
 	GtkWidget              *hide_button_top;
 	GtkWidget              *hide_button_bottom;
 	GtkWidget              *hide_button_left;
@@ -1224,10 +1228,15 @@ set_arrow_type (GtkImage     *image,
 static GtkWidget *
 panel_toplevel_add_hide_button (PanelToplevel *toplevel,
 				GtkArrowType   arrow_type,
+#if GTK_CHECK_VERSION (3, 0, 0)
+				int            left,
+				int            top)
+#else
 				int            left_attach,
 				int            right_attach,
 				int            top_attach,
 				int            bottom_attach)
+#endif
 {
 	GtkWidget *button;
 	AtkObject *obj;
@@ -1287,6 +1296,9 @@ panel_toplevel_add_hide_button (PanelToplevel *toplevel,
 	g_signal_connect_swapped (button, "button_release_event",
 				  G_CALLBACK (panel_toplevel_hide_button_event), toplevel);
 
+#if GTK_CHECK_VERSION (3, 0, 0)
+	gtk_grid_attach (GTK_GRID (toplevel->priv->grid), button, left, top, 1, 1);
+#else
 	gtk_table_attach (GTK_TABLE (toplevel->priv->table),
 			  button,
 			  left_attach,
@@ -1297,6 +1309,7 @@ panel_toplevel_add_hide_button (PanelToplevel *toplevel,
 			  GTK_FILL,
 			  0,
 			  0);
+#endif
 
 	return button;
 }
@@ -5034,6 +5047,14 @@ panel_toplevel_setup_widgets (PanelToplevel *toplevel)
 {
 	GtkWidget* container;
 
+#if GTK_CHECK_VERSION (3, 0, 0)
+	toplevel->priv->grid = gtk_grid_new ();
+
+	toplevel->priv->hide_button_top    = panel_toplevel_add_hide_button (toplevel, GTK_ARROW_UP,    1, 0);
+	toplevel->priv->hide_button_bottom = panel_toplevel_add_hide_button (toplevel, GTK_ARROW_DOWN,  1, 2);
+	toplevel->priv->hide_button_left   = panel_toplevel_add_hide_button (toplevel, GTK_ARROW_LEFT,  0, 1);
+	toplevel->priv->hide_button_right  = panel_toplevel_add_hide_button (toplevel, GTK_ARROW_RIGHT, 2, 1);
+#else
 	toplevel->priv->table = gtk_table_new(3, 3, FALSE);
 
 	toplevel->priv->hide_button_top = panel_toplevel_add_hide_button(toplevel, GTK_ARROW_UP,    1, 2, 0, 1);
@@ -5043,6 +5064,7 @@ panel_toplevel_setup_widgets (PanelToplevel *toplevel)
 	toplevel->priv->hide_button_left = panel_toplevel_add_hide_button(toplevel, GTK_ARROW_LEFT,  0, 1, 1, 2);
 
 	toplevel->priv->hide_button_right = panel_toplevel_add_hide_button(toplevel, GTK_ARROW_RIGHT, 2, 3, 1, 2);
+#endif
 
 	if (toplevel->priv->orientation & PANEL_HORIZONTAL_MASK)
 	{
@@ -5057,6 +5079,12 @@ panel_toplevel_setup_widgets (PanelToplevel *toplevel)
 
 	toplevel->priv->inner_frame = g_object_new(PANEL_TYPE_FRAME, NULL);
 
+#if GTK_CHECK_VERSION (3, 0, 0)
+	gtk_widget_set_hexpand (GTK_WIDGET (toplevel->priv->inner_frame), TRUE);
+	gtk_widget_set_vexpand (GTK_WIDGET (toplevel->priv->inner_frame), TRUE);
+
+	gtk_grid_attach (GTK_GRID (toplevel->priv->grid), GTK_WIDGET (toplevel->priv->inner_frame), 1, 1, 1, 1);
+#else
 	gtk_table_attach (GTK_TABLE (toplevel->priv->table),
 			  GTK_WIDGET (toplevel->priv->inner_frame),
 			  1, 2,
@@ -5064,6 +5092,7 @@ panel_toplevel_setup_widgets (PanelToplevel *toplevel)
 			  GTK_FILL | GTK_EXPAND | GTK_SHRINK,
 			  GTK_FILL | GTK_EXPAND | GTK_SHRINK,
 			  0, 0);
+#endif
 	gtk_widget_show (GTK_WIDGET (toplevel->priv->inner_frame));
 
 	container = panel_widget_new (toplevel,
@@ -5078,8 +5107,13 @@ panel_toplevel_setup_widgets (PanelToplevel *toplevel)
 	gtk_container_add(GTK_CONTAINER(toplevel->priv->inner_frame), container);
 	gtk_widget_show(container);
 
+#if GTK_CHECK_VERSION (3, 0, 0)
+	gtk_container_add (GTK_CONTAINER (toplevel), toplevel->priv->grid);
+	gtk_widget_show (toplevel->priv->grid);
+#else
 	gtk_container_add(GTK_CONTAINER(toplevel), toplevel->priv->table);
 	gtk_widget_show(toplevel->priv->table);
+#endif
 }
 
 #if GTK_CHECK_VERSION (3, 18, 0)
@@ -5152,7 +5186,11 @@ panel_toplevel_init (PanelToplevel *toplevel)
 
 	toplevel->priv->panel_widget       = NULL;
 	toplevel->priv->inner_frame        = NULL;
+#if GTK_CHECK_VERSION (3, 0, 0)
+	toplevel->priv->grid               = NULL;
+#else
 	toplevel->priv->table              = NULL;
+#endif
 	toplevel->priv->hide_button_top    = NULL;
 	toplevel->priv->hide_button_bottom = NULL;
 	toplevel->priv->hide_button_left   = NULL;

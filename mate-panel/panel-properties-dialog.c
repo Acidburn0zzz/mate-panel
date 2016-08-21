@@ -812,7 +812,11 @@ static void
 panel_properties_dialog_remove_orientation_combo (PanelPropertiesDialog *dialog)
 {
 	GtkContainer *container = GTK_CONTAINER (dialog->general_table);
+#if GTK_CHECK_VERSION (3, 0, 0)
+	GtkGrid      *grid      = GTK_GRID (dialog->general_table);
+#else
 	GtkTable     *table     = GTK_TABLE (dialog->general_table);
+#endif
 
 	g_object_ref (dialog->size_label);
 	g_object_ref (dialog->size_widgets);
@@ -826,10 +830,17 @@ panel_properties_dialog_remove_orientation_combo (PanelPropertiesDialog *dialog)
 	gtk_container_remove (container, dialog->icon_label);
 	gtk_container_remove (container, dialog->icon_align);
 
+#if GTK_CHECK_VERSION (3, 0, 0)
+	gtk_grid_attach (grid, dialog->size_label,   0, 1, 1, 1);
+	gtk_grid_attach (grid, dialog->size_widgets, 1, 1, 1, 1);
+	gtk_grid_attach (grid, dialog->icon_label,   0, 2, 1, 1);
+	gtk_grid_attach (grid, dialog->icon_align,   1, 2, 1, 1);
+#else
 	gtk_table_attach_defaults (table, dialog->size_label,   0, 1, 1, 2);
 	gtk_table_attach_defaults (table, dialog->size_widgets, 1, 2, 1, 2);
 	gtk_table_attach_defaults (table, dialog->icon_label,   0, 1, 2, 3);
 	gtk_table_attach_defaults (table, dialog->icon_align,   1, 2, 2, 3);
+#endif
 
 	dialog->orientation_label = NULL;
 	dialog->orientation_combo = NULL;
@@ -838,7 +849,9 @@ panel_properties_dialog_remove_orientation_combo (PanelPropertiesDialog *dialog)
 	g_object_unref (dialog->icon_label);
 	g_object_unref (dialog->icon_align);
 
+#if !GTK_CHECK_VERSION (3, 0, 0)
 	gtk_table_resize (table, 3, 2);
+#endif
 }
 
 static void
@@ -853,7 +866,9 @@ panel_properties_dialog_remove_icon_chooser (PanelPropertiesDialog *dialog)
 	dialog->icon_align = NULL;
 	dialog->icon_chooser = NULL;
 
+#if !GTK_CHECK_VERSION (3, 0, 0)
 	gtk_table_resize (GTK_TABLE (dialog->general_table), 3, 2);
+#endif
 }
 
 static void
@@ -996,15 +1011,25 @@ panel_properties_dialog_present (PanelToplevel *toplevel)
 	gtk_builder_set_translation_domain (gui, GETTEXT_PACKAGE);
 
 	error = NULL;
+#if GTK_CHECK_VERSION (3, 0, 0)
+	gtk_builder_add_from_file (gui,
+				   BUILDERDIR "/panel-properties-dialog-gtk3.ui",
+				   &error);
+#else
 	gtk_builder_add_from_file (gui,
 				   BUILDERDIR "/panel-properties-dialog.ui",
 				   &error);
+#endif
 
         if (error) {
 		char *secondary;
 
 		secondary = g_strdup_printf (_("Unable to load file '%s': %s."),
+#if GTK_CHECK_VERSION (3, 0, 0)
+					     BUILDERDIR"/panel-properties-dialog-gtk3.ui",
+#else
 					     BUILDERDIR"/panel-properties-dialog.ui",
+#endif
 					     error->message);
 		panel_error_dialog (GTK_WINDOW (toplevel),
 				    gtk_window_get_screen (GTK_WINDOW (toplevel)),

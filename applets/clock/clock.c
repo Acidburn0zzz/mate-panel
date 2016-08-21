@@ -52,8 +52,6 @@
 #include <gdk/gdkx.h>
 #include <gio/gio.h>
 
-#include <libmate-desktop/mate-aboutdialog.h>
-
 #if GTK_CHECK_VERSION (3, 0, 0)
 #define GWEATHER_I_KNOW_THIS_IS_UNSTABLE
 #include <libgweather/gweather.h>
@@ -656,8 +654,6 @@ update_clock (ClockData * cd)
 {
 	gboolean use_markup;
         char *utf8;
-
-        use_markup = FALSE;
 
 	time (&cd->current_time);
         utf8 = format_time (cd);
@@ -2797,6 +2793,7 @@ run_prefs_edit_save (GtkButton *button, ClockData *cd)
 		 * there's none and this one can be considered as a current one
 		 */
 		clock_location_is_current (loc);
+
                 cd->locations = g_list_append (cd->locations, loc);
         }
         g_free (name);
@@ -3551,9 +3548,10 @@ static void display_about_dialog(GtkAction* action, ClockData* cd)
 	};
 
 	char copyright[] = \
+		"Copyright \xc2\xa9 2012-2016 MATE developers\n"
 		"Copyright \xc2\xa9 1998-2004 Free Software Foundation, Inc.";
 
-	mate_show_about_dialog(NULL,
+	gtk_show_about_dialog(NULL,
 		"program-name", _("Clock"),
 		"authors", authors,
 		"comments", _("The Clock displays the current time and date"),
