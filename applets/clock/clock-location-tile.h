@@ -36,14 +36,14 @@ typedef struct
         GtkAlignmentClass parent_class;
 #endif
 
-	void (* tile_pressed) (ClockLocationTile *tile);
+        void (* tile_pressed) (ClockLocationTile *tile);
         int  (* need_clock_format) (ClockLocationTile *tile);
 } ClockLocationTileClass;
 
 GType clock_location_tile_get_type (void);
 
 ClockLocationTile *clock_location_tile_new (ClockLocation *loc,
-					    ClockFaceSize size);
+                                            ClockFaceSize size);
 
 ClockLocation *clock_location_tile_get_location (ClockLocationTile *this);
 
@@ -52,7 +52,7 @@ void weather_info_setup_tooltip (GWeatherInfo *info, ClockLocation *location, Gt
 				 ClockFormat clock_format);
 #else
 void weather_info_setup_tooltip (WeatherInfo *info, ClockLocation *location, GtkTooltip *tip,
-				 ClockFormat clock_format);
+                                 ClockFormat clock_format);
 #endif
 
 void clock_location_tile_refresh (ClockLocationTile *this,
