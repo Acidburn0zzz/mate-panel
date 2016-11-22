@@ -61,7 +61,6 @@
 #include "panel-lockdown.h"
 #include "panel-xutils.h"
 #include "panel-icon-names.h"
-#include "panel-xdg.h"
 
 typedef struct {
 	GtkWidget        *run_dialog;
@@ -271,12 +270,7 @@ panel_run_dialog_set_icon (PanelRunDialog *dialog,
 		GtkIconTheme *icon_theme = gtk_icon_theme_get_default ();
 		GtkIconInfo *icon_info = gtk_icon_theme_lookup_by_gicon (icon_theme, icon, size, 0);
 		pixbuf = gtk_icon_info_load_icon (icon_info, NULL);
-#if GTK_CHECK_VERSION (3, 8, 0)
 		g_object_unref (icon_info);
-#else
-		gtk_icon_info_free (icon_info);
-#endif
-
 	}
 
 	if (pixbuf) {
@@ -291,11 +285,7 @@ panel_run_dialog_set_icon (PanelRunDialog *dialog,
 		//(ditto for the drag icon?)
 		gtk_window_set_icon (GTK_WINDOW (dialog->run_dialog), pixbuf);
 
-#if GTK_CHECK_VERSION (3, 2, 0)
 		gtk_drag_source_set_icon_gicon (dialog->run_dialog, dialog->icon);
-#else
-		gtk_drag_source_set_icon_pixbuf (dialog->run_dialog, pixbuf);
-#endif
 		g_object_unref (pixbuf);
 	} else {
 		panel_run_dialog_set_default_icon (dialog, TRUE);
@@ -884,7 +874,7 @@ panel_run_dialog_add_items_idle (PanelRunDialog *dialog)
 				    COLUMN_VISIBLE,   TRUE,
 				    -1);
 
-		g_clear_object (&gicon);
+		g_object_unref (gicon);
 
 		matemenu_tree_item_unref (entry);
 	}
@@ -1191,13 +1181,8 @@ file_button_clicked (GtkButton      *button,
 	chooser = gtk_file_chooser_dialog_new (_("Choose a file to append to the command..."),
 					       GTK_WINDOW (dialog->run_dialog),
 					       GTK_FILE_CHOOSER_ACTION_OPEN,
-#if GTK_CHECK_VERSION (3, 10, 0)
-					       _("_Cancel"), GTK_RESPONSE_CANCEL,
-					       _("_OK"), GTK_RESPONSE_OK,
-#else
 					       GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 					       GTK_STOCK_OK, GTK_RESPONSE_OK,
-#endif
 					       NULL);
 
 	gtk_file_chooser_set_current_folder (GTK_FILE_CHOOSER (chooser),
@@ -1820,14 +1805,8 @@ pixmap_drag_data_get (GtkWidget          *run_dialog,
 }
 
 static void
-#if GTK_CHECK_VERSION (3, 0, 0)
 panel_run_dialog_style_updated (GtkWidget *widget,
 				PanelRunDialog *dialog)
-#else
-panel_run_dialog_style_set (GtkWidget      *widget,
-			    GtkStyle       *prev_style,
-			    PanelRunDialog *dialog)
-#endif
 {
   if (dialog->icon) {
 	  GIcon *icon;
@@ -1858,15 +1837,9 @@ panel_run_dialog_setup_pixmap (PanelRunDialog *dialog,
 {
 	dialog->pixmap = PANEL_GTK_BUILDER_GET (gui, "icon_pixmap");
 
-#if GTK_CHECK_VERSION (3, 0, 0)
 	g_signal_connect (dialog->pixmap, "style-updated",
 			  G_CALLBACK (panel_run_dialog_style_updated),
 			  dialog);
-#else
-	g_signal_connect (dialog->pixmap, "style-set",
-			  G_CALLBACK (panel_run_dialog_style_set),
-			  dialog);
-#endif
 	g_signal_connect (dialog->pixmap, "screen-changed",
 			  G_CALLBACK (panel_run_dialog_screen_changed),
 			  dialog);
@@ -1927,15 +1900,9 @@ panel_run_dialog_new (GdkScreen  *screen,
 static void
 panel_run_dialog_disconnect_pixmap (PanelRunDialog *dialog)
 {
-#if GTK_CHECK_VERSION (3, 0, 0)
 	g_signal_handlers_disconnect_by_func (dialog->pixmap,
 					      G_CALLBACK (panel_run_dialog_style_updated),
 					      dialog);
-#else
-	g_signal_handlers_disconnect_by_func (dialog->pixmap,
-			                      G_CALLBACK (panel_run_dialog_style_set),
-			                      dialog);
-#endif
 	g_signal_handlers_disconnect_by_func (dialog->pixmap,
 			                      G_CALLBACK (panel_run_dialog_screen_changed),
 			                      dialog);

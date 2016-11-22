@@ -102,7 +102,6 @@ panel_action_protocol_filter (GdkXEvent *gdk_xevent,
 	GdkWindow *window;
 	GdkScreen *screen;
 	GdkDisplay *display;
-
 	XEvent    *xevent = (XEvent *) gdk_xevent;
 
 	if (xevent->type != ClientMessage)

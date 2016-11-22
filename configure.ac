@@ -1,4 +1,4 @@
-AC_INIT([mate-panel], [1.16.0], [https://github.com/mate-desktop/mate-panel/issues],
+AC_INIT([mate-panel], [1.17.0], [https://github.com/mate-desktop/mate-panel/issues],
     [mate-panel], [http://www.mate-desktop.org])
 AC_CONFIG_HEADERS(config.h)
 AM_INIT_AUTOMAKE([1.9 no-dist-gzip dist-xz tar-ustar -Wno-portability check-news])
@@ -54,82 +54,43 @@ if test "x$enable_deprecation_flags" = "xyes"; then
    AC_SUBST(DISABLE_DEPRECATED_CFLAGS)
 fi
 
-LIBMATE_DESKTOP_REQUIRED=1.9.3
+LIBMATE_DESKTOP_REQUIRED=1.17.0
 GDK_PIXBUF_REQUIRED=2.7.1
 PANGO_REQUIRED=1.15.4
 GLIB_REQUIRED=2.36
-LIBMATE_MENU_REQUIRED=1.1.0
+LIBMATE_MENU_REQUIRED=1.10.0
 CAIRO_REQUIRED=1.0.0
 DBUS_GLIB_REQUIRED=0.80
-DCONF_NEW_REQUIRED=0.13.4
-DCONF_OLD_REQUIRED=0.10.0
+DCONF_REQUIRED=0.13.4
 LIBRSVG_REQUIRED=2.36.2
-
-# GTK library
-
-AC_MSG_CHECKING([which gtk+ version to compile against])
-AC_ARG_WITH([gtk],
-  [AS_HELP_STRING([--with-gtk=2.0|3.0],[which gtk+ version to compile against (default: 2.0)])],
-  [case "$with_gtk" in
-     2.0|3.0) ;;
-     *) AC_MSG_ERROR([invalid gtk version specified]) ;;
-   esac],
-  [with_gtk=2.0])
-AC_MSG_RESULT([$with_gtk])
-
-case "$with_gtk" in
-  2.0) GTK_API_VERSION=2.0
-       GTK_REQUIRED=2.19.7
-       LIBWNCK_API_VERSION=1.0
-       LIBWNCK_REQUIRED=2.30.0
-       LIBCANBERRA_API_VERSION=
-       WEATHER_LIB=mateweather
-       WEATHER_REQUIRED=1.5.0
-       ;;
-  3.0) GTK_API_VERSION=3.0
-       GTK_REQUIRED=3.0.0
-       LIBCANBERRA_API_VERSION=3
-       LIBWNCK_API_VERSION=3.0
-       LIBWNCK_REQUIRED=3.0.0
-       WEATHER_LIB=gweather-3.0
-       WEATHER_REQUIRED=3.14.0
-       ;;
-esac
-
-AC_SUBST(GTK_API_VERSION)
+GTK_REQUIRED=3.14.0
+LIBWNCK_REQUIRED=3.0.0
+WEATHER_REQUIRED=3.14.0
 
 dnl pkg-config dependency checks
 
-PKG_CHECK_MODULES(EGG_SMCLIENT, ice sm gtk+-$GTK_API_VERSION)
+PKG_CHECK_MODULES(EGG_SMCLIENT, ice sm gtk+-3.0)
 
 PKG_CHECK_MODULES(GMODULE, gmodule-2.0,[GMODULE_ADD="gmodule-2.0"],[GMODULE_ADD=""])
-PKG_CHECK_MODULES(PANEL, $GMODULE_ADD gdk-pixbuf-2.0 >= $GDK_PIXBUF_REQUIRED pango >= $PANGO_REQUIRED gtk+-$GTK_API_VERSION >= $GTK_REQUIRED glib-2.0 >= $GLIB_REQUIRED gio-unix-2.0 >= $GLIB_REQUIRED mate-desktop-2.0 >= $LIBMATE_DESKTOP_REQUIRED gio-2.0 >= $GLIB_REQUIRED libmate-menu >= $LIBMATE_MENU_REQUIRED libcanberra-gtk$LIBCANBERRA_API_VERSION dbus-glib-1 >= $DBUS_GLIB_REQUIRED)
+PKG_CHECK_MODULES(PANEL, $GMODULE_ADD gdk-pixbuf-2.0 >= $GDK_PIXBUF_REQUIRED pango >= $PANGO_REQUIRED gtk+-3.0 >= $GTK_REQUIRED glib-2.0 >= $GLIB_REQUIRED gio-unix-2.0 >= $GLIB_REQUIRED mate-desktop-2.0 >= $LIBMATE_DESKTOP_REQUIRED gio-2.0 >= $GLIB_REQUIRED libmate-menu >= $LIBMATE_MENU_REQUIRED libcanberra-gtk3 dbus-glib-1 >= $DBUS_GLIB_REQUIRED)
 AC_SUBST(PANEL_CFLAGS)
 AC_SUBST(PANEL_LIBS)
 
-PKG_CHECK_MODULES([DCONF], [dconf >= $DCONF_NEW_REQUIRED],
-   [AC_DEFINE([HAVE_DCONF_0_13], [1], [Use DCONF >= $DCONF_NEW_REQUIRED])],
-   [PKG_CHECK_MODULES([DCONF], [dconf >= $DCONF_OLD_REQUIRED],
-       [AC_DEFINE([HAVE_DCONF_0_10], [1], [Use DCONF $DCONF_OLD_REQUIRED])
-    ])
-])
-AC_SUBST(DCONF_CFLAGS)
-AC_SUBST(DCONF_LIBS)
+PKG_CHECK_MODULES(DCONF, dconf >= $DCONF_REQUIRED)
 
-
-PKG_CHECK_MODULES(LIBMATE_PANEL_APPLET, gtk+-$GTK_API_VERSION >= $GTK_REQUIRED gio-2.0 >= $GLIB_REQUIRED gio-unix-2.0 >= $GLIB_REQUIRED)
+PKG_CHECK_MODULES(LIBMATE_PANEL_APPLET, gtk+-3.0 >= $GTK_REQUIRED gio-2.0 >= $GLIB_REQUIRED gio-unix-2.0 >= $GLIB_REQUIRED)
 AC_SUBST(LIBMATE_PANEL_APPLET_CFLAGS)
 AC_SUBST(LIBMATE_PANEL_APPLET_LIBS)
 
-PKG_CHECK_MODULES(FISH, gtk+-$GTK_API_VERSION >= $GTK_REQUIRED cairo >= $CAIRO_REQUIRED mate-desktop-2.0 >= $LIBMATE_DESKTOP_REQUIRED)
+PKG_CHECK_MODULES(FISH, gtk+-3.0 >= $GTK_REQUIRED cairo >= $CAIRO_REQUIRED mate-desktop-2.0 >= $LIBMATE_DESKTOP_REQUIRED)
 AC_SUBST(FISH_CFLAGS)
 AC_SUBST(FISH_LIBS)
 
-PKG_CHECK_MODULES(NOTIFICATION_AREA, gtk+-$GTK_API_VERSION >= $GTK_REQUIRED mate-desktop-2.0 >= $LIBMATE_DESKTOP_REQUIRED)
+PKG_CHECK_MODULES(NOTIFICATION_AREA, gtk+-3.0 >= $GTK_REQUIRED mate-desktop-2.0 >= $LIBMATE_DESKTOP_REQUIRED)
 AC_SUBST(NOTIFICATION_AREA_CFLAGS)
 AC_SUBST(NOTIFICATION_AREA_LIBS)
 
-PKG_CHECK_MODULES(WNCKLET, gtk+-$GTK_API_VERSION >= $GTK_REQUIRED libwnck-$LIBWNCK_API_VERSION >= $LIBWNCK_REQUIRED mate-desktop-2.0 >= $LIBMATE_DESKTOP_REQUIRED)
+PKG_CHECK_MODULES(WNCKLET, gtk+-3.0 >= $GTK_REQUIRED libwnck-3.0 >= $LIBWNCK_REQUIRED mate-desktop-2.0 >= $LIBMATE_DESKTOP_REQUIRED)
 AC_SUBST(WNCKLET_CFLAGS)
 AC_SUBST(WNCKLET_LIBS)
 
@@ -140,7 +101,7 @@ PKG_CHECK_MODULES(TZ, gio-2.0 >= $GLIB_REQUIRED)
 AC_SUBST(TZ_CFLAGS)
 AC_SUBST(TZ_LIBS)
 
-PKG_CHECK_MODULES(CLOCK, pango >= $PANGO_REQUIRED gtk+-$GTK_API_VERSION >= $GTK_REQUIRED glib-2.0 >= $GLIB_REQUIRED gio-2.0 >= $GLIB_REQUIRED librsvg-2.0 >= $LIBRSVG_REQUIRED dbus-glib-1 $WEATHER_LIB >= $WEATHER_REQUIRED mate-desktop-2.0 >= $LIBMATE_DESKTOP_REQUIRED)
+PKG_CHECK_MODULES(CLOCK, pango >= $PANGO_REQUIRED gtk+-3.0 >= $GTK_REQUIRED glib-2.0 >= $GLIB_REQUIRED gio-2.0 >= $GLIB_REQUIRED librsvg-2.0 >= $LIBRSVG_REQUIRED dbus-glib-1 gweather-3.0 >= $WEATHER_REQUIRED mate-desktop-2.0 >= $LIBMATE_DESKTOP_REQUIRED)
 AC_SUBST(CLOCK_CFLAGS)
 AC_SUBST(CLOCK_LIBS)
 
@@ -363,7 +324,6 @@ echo "
         cflags:                        ${CFLAGS}
         Maintainer mode:               ${USE_MAINTAINER_MODE}
         Use *_DISABLE_DEPRECATED:      ${enable_deprecation_flags}
-        Gtk+ version:                  ${GTK_API_VERSION}
         Applets to build in-process:   ${PANEL_INPROCESS_APPLETS}
         XRandr support:                ${have_randr}
         Build introspection support:   ${found_introspection}

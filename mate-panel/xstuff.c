@@ -17,7 +17,11 @@
 #include <unistd.h>
 
 #include <gdk/gdk.h>
+#include <gdk/gdkx.h>
 #include <gtk/gtk.h>
+
+#include <X11/Xlib.h>
+#include <X11/Xatom.h>
 
 #include "panel-enums.h"
 #include "xstuff.h"
@@ -59,13 +63,8 @@ idle_destroy (gpointer data)
 }
 
 static gboolean
-#if GTK_CHECK_VERSION (3, 0, 0)
 zoom_draw (GtkWidget *widget,
 	     cairo_t *cr,
-#else
-zoom_expose (GtkWidget      *widget,
-	     GdkEventExpose *event,
-#endif
 	     gpointer        user_data)
 {
 	CompositedZoomData *zoom;
@@ -88,9 +87,6 @@ zoom_expose (GtkWidget      *widget,
 		GdkPixbuf *scaled;
 		int width, height;
 		int x = 0, y = 0;
-#if !GTK_CHECK_VERSION (3, 0, 0)
-		cairo_t *cr;
-#endif
 
 		gtk_window_get_size (GTK_WINDOW (widget), &width, &height);
 
@@ -123,9 +119,6 @@ zoom_expose (GtkWidget      *widget,
 			break;
 		}
 
-#if !GTK_CHECK_VERSION (3, 0, 0)
-		cr = gdk_cairo_create (gtk_widget_get_window (widget));
-#endif
 		cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
 		cairo_set_source_rgba (cr, 0, 0, 0, 0.0);
 		cairo_rectangle (cr, 0, 0, width, height);
@@ -135,16 +128,13 @@ zoom_expose (GtkWidget      *widget,
 		cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
 		cairo_paint_with_alpha (cr, MAX (zoom->opacity, 0));
 
-#if !GTK_CHECK_VERSION (3, 0, 0)
-		cairo_destroy (cr);
-#endif
 		g_object_unref (scaled);
 	}
 
 	return FALSE;
 }
 
-static void
+static void 
 draw_zoom_animation_composited (GdkScreen *gscreen,
 				int x, int y, int w, int h,
 				GdkPixbuf *pixbuf,
@@ -172,11 +162,7 @@ draw_zoom_animation_composited (GdkScreen *gscreen,
 	gtk_window_set_keep_above (GTK_WINDOW (win), TRUE);
 	gtk_window_set_decorated (GTK_WINDOW (win), FALSE);
 	gtk_widget_set_app_paintable(win, TRUE);
-#if GTK_CHECK_VERSION (3, 0, 0)
 	gtk_widget_set_visual (win, gdk_screen_get_rgba_visual (gscreen));
-#else
-	gtk_widget_set_colormap (win, gdk_screen_get_rgba_colormap (gscreen));
-#endif
 
 	gtk_window_set_gravity (GTK_WINDOW (win), GDK_GRAVITY_STATIC);
 	gtk_window_set_default_size (GTK_WINDOW (win),
@@ -206,21 +192,12 @@ draw_zoom_animation_composited (GdkScreen *gscreen,
 
 	gtk_window_move (GTK_WINDOW (win), wx, wy);
 
-#if GTK_CHECK_VERSION (3, 0, 0)
 	g_signal_connect (G_OBJECT (win), "draw",
 			 G_CALLBACK (zoom_draw), zoom);
-#else
-	g_signal_connect (G_OBJECT (win), "expose-event",
-			  G_CALLBACK (zoom_expose), zoom);
-#endif
 
 	/* see doc for gtk_widget_set_app_paintable() */
 	gtk_widget_realize (win);
-#if GTK_CHECK_VERSION (3, 0, 0)
 	gdk_window_set_background_pattern (gtk_widget_get_window (win), NULL);
-#else
-	gdk_window_set_back_pixmap (gtk_widget_get_window (win), NULL, FALSE);
-#endif
 	gtk_widget_show (win);
 
 	zoom->timeout_id = g_timeout_add (ZOOM_DELAY,

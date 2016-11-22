@@ -119,12 +119,22 @@ static void applet_change_orient(MatePanelApplet* applet, MatePanelAppletOrient 
 
 	tasklist->orientation = new_orient;
 
-#ifdef WNCK_CHECK_VERSION
 #if WNCK_CHECK_VERSION (3, 4, 6)
 	wnck_tasklist_set_orientation (WNCK_TASKLIST (tasklist->tasklist), new_orient);
 #endif
-#endif
 	tasklist_update(tasklist);
+}
+
+static void applet_change_background(MatePanelApplet* applet, MatePanelAppletBackgroundType type, GdkColor* color, cairo_pattern_t* pattern, TasklistData* tasklist)
+{
+	switch (type)
+	{
+		case PANEL_NO_BACKGROUND:
+		case PANEL_COLOR_BACKGROUND:
+		case PANEL_PIXMAP_BACKGROUND:
+			wnck_tasklist_set_button_relief(WNCK_TASKLIST(tasklist->tasklist), GTK_RELIEF_NONE);
+			break;
+	}
 }
 
 static void applet_change_pixel_size(MatePanelApplet* applet, gint size, TasklistData* tasklist)
@@ -404,21 +414,11 @@ gboolean window_list_applet_fill(MatePanelApplet* applet)
 			break;
 	}
 
-#ifdef WNCK_CHECK_VERSION
-#if WNCK_CHECK_VERSION (3, 0, 0)
 	tasklist->tasklist = wnck_tasklist_new();
-#else
-	tasklist->tasklist = wnck_tasklist_new(NULL);
-#endif
-#else
-	tasklist->tasklist = wnck_tasklist_new(NULL);
-#endif
 
-#ifdef WNCK_CHECK_VERSION
 #if WNCK_CHECK_VERSION (3, 4, 6)
 	wnck_tasklist_set_orientation (WNCK_TASKLIST (tasklist->tasklist), tasklist->orientation);
 	wnck_tasklist_set_middle_click_close (WNCK_TASKLIST (tasklist->tasklist), TRUE);
-#endif
 #endif
 
 	wnck_tasklist_set_icon_loader(WNCK_TASKLIST(tasklist->tasklist), icon_loader_func, tasklist, NULL);
@@ -434,10 +434,9 @@ gboolean window_list_applet_fill(MatePanelApplet* applet)
 	g_signal_connect(G_OBJECT(tasklist->applet), "realize", G_CALLBACK(applet_realized), tasklist);
 	g_signal_connect(G_OBJECT(tasklist->applet), "change_orient", G_CALLBACK(applet_change_orient), tasklist);
 	g_signal_connect(G_OBJECT(tasklist->applet), "change_size", G_CALLBACK(applet_change_pixel_size), tasklist);
+	g_signal_connect(G_OBJECT(tasklist->applet), "change_background", G_CALLBACK(applet_change_background), tasklist);
 
-#if !GTK_CHECK_VERSION (3, 0, 0)
 	mate_panel_applet_set_background_widget(MATE_PANEL_APPLET(tasklist->applet), GTK_WIDGET(tasklist->applet));
-#endif
 
 	action_group = gtk_action_group_new("Tasklist Applet Actions");
 	gtk_action_group_set_translation_domain(action_group, GETTEXT_PACKAGE);

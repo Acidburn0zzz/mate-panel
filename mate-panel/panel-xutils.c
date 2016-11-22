@@ -115,12 +115,8 @@ panel_warp_pointer (GdkWindow *window,
 	display = gdk_window_get_display (window);
 	screen = gdk_window_get_screen (window);
 
-#if GTK_CHECK_VERSION (3, 0, 0)
 	GdkDeviceManager *device_manager = gdk_display_get_device_manager (display);
 	GdkDevice *device = gdk_device_manager_get_client_pointer (device_manager);
 	gdk_device_warp (device, screen, x, y);
-#else
-	gdk_display_warp_pointer (display, screen, x, y);
-#endif
 }
 
