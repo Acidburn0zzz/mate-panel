@@ -615,9 +615,6 @@ xstuff_zoom_animate (GtkWidget *widget,
 				     dest.x, dest.y, dest.width, dest.height,
 				     MINIATURIZE_ANIMATION_STEPS_Z);
 	}
-
-	if (pixbuf)
-		g_object_unref (pixbuf);
 }
 
 int
