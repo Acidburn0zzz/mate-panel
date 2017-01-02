@@ -242,15 +242,14 @@ applet_callback_callback (GtkWidget      *widget,
 	switch (menu->info->type) {
 	case PANEL_OBJECT_LAUNCHER:
 		if (!strcmp (menu->name, "launch"))
-			launcher_launch (menu->info->data, widget, NULL);
+			launcher_launch (menu->info->data, NULL);
 		else if (!strcmp (menu->name, "properties"))
 			launcher_properties (menu->info->data);
-#if GLIB_CHECK_VERSION (2, 38, 0)
 		else if (g_str_has_prefix (menu->name, "launch-action_")) {
-			const gchar *action = menu->name + (sizeof("launch-action_") - 1);
-			launcher_launch (menu->info->data, widget, action);
+			const gchar *action;
+			action = menu->name + (sizeof("launch-action_") - 1);
+			launcher_launch (menu->info->data, action);
 		}
-#endif
 		break;
 	case PANEL_OBJECT_DRAWER:
 		if (strcmp (menu->name, "add") == 0) {
@@ -371,7 +370,6 @@ mate_panel_applet_clear_user_menu (AppletInfo *info)
 		g_free (umenu->name);
 		g_clear_object (&(umenu->gicon));
 		g_free (umenu->text);
-
 		g_free (umenu);
 	}
 
@@ -545,13 +543,8 @@ mate_panel_applet_create_menu (AppletInfo *info)
 		}
 
 		menuitem = gtk_image_menu_item_new_with_mnemonic (_("_Remove From Panel"));
-#if GTK_CHECK_VERSION (3, 10, 0)
 		image = gtk_image_new_from_icon_name ("list-remove",
-						  GTK_ICON_SIZE_MENU);
-#else
-		image = gtk_image_new_from_stock (GTK_STOCK_REMOVE,
-						  GTK_ICON_SIZE_MENU);
-#endif
+						      GTK_ICON_SIZE_MENU);
 		gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menuitem),
 					       image);
 		g_signal_connect (menuitem, "activate",

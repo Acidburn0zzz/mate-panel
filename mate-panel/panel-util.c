@@ -760,7 +760,7 @@ panel_util_cairo_rgbdata_to_pixbuf (unsigned char *data,
 
 char *
 guess_icon_from_exec (GtkIconTheme *icon_theme,
-		      const gchar *exec)
+		      const gchar  *exec)
 {
 	char *icon_name;
 	char *path;
