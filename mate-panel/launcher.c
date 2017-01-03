@@ -363,7 +363,7 @@ enum {
 };
 
 
-static void  
+static void
 drag_data_get_cb (GtkWidget        *widget,
 		  GdkDragContext   *context,
 		  GtkSelectionData *selection_data,
@@ -374,6 +374,7 @@ drag_data_get_cb (GtkWidget        *widget,
 	const char *location;
 
 	g_return_if_fail (launcher != NULL);
+	g_return_if_fail (launcher->app_info != NULL);
 
 	location = g_desktop_app_info_get_filename (launcher->app_info);
 
@@ -612,6 +613,7 @@ panel_launcher_find_writable_uri (const char *launcher_location,
 {
 	char *path;
 	char *uri;
+	char *filename;
 
 	if (!launcher_location)
 		return panel_make_unique_desktop_uri (NULL, source);
@@ -623,7 +625,8 @@ panel_launcher_find_writable_uri (const char *launcher_location,
 		return uri;
 	}
 
-	if (panel_launcher_get_filename (launcher_location) != NULL) {
+	filename = panel_launcher_get_filename (launcher_location);
+	if (filename != NULL) {
 		/* we have a file in the user directory. We either have a path
 		 * or an URI */
 		if (g_path_is_absolute (launcher_location))
@@ -632,6 +635,8 @@ panel_launcher_find_writable_uri (const char *launcher_location,
 		else
 			return g_strdup (launcher_location);
 	}
+
+	g_free (filename);
 
 	return panel_make_unique_desktop_uri (NULL, source);
 }
@@ -718,19 +723,21 @@ launcher_saved (GtkWidget *dialog,
 		Launcher  *launcher)
 {
 	const char  *uri;
-	const gchar *location;
+	gchar *location;
+	char  *filename;
+
 	uri = panel_ditem_editor_get_uri (PANEL_DITEM_EDITOR (dialog));
-	if (panel_launcher_get_filename (uri) != NULL)
-		uri = panel_launcher_get_filename (uri);
+	filename = panel_launcher_get_filename(uri);
 
-	location = g_desktop_app_info_get_filename (launcher->app_info);
-	if (uri && location && strcmp (uri, location)) {
+	g_settings_set_string (launcher->info->settings, PANEL_OBJECT_LAUNCHER_LOCATION_KEY, filename);
 
-		g_settings_set_string (launcher->info->settings, PANEL_OBJECT_LAUNCHER_LOCATION_KEY, uri);
+	g_free (filename);
 
-		g_object_unref (launcher->app_info);
-		launcher->app_info = g_desktop_app_info_new_from_filename (uri);
-	}
+	g_object_unref (launcher->app_info);
+
+	location = g_filename_from_uri (uri, NULL, NULL);
+	launcher->app_info = g_desktop_app_info_new_from_filename (location);
+	g_free (location);
 }
 
 static void
@@ -747,6 +754,8 @@ launcher_error_reported (GtkWidget  *dialog,
 void
 launcher_properties (Launcher  *launcher)
 {
+	gchar *uri;
+
 	if (launcher->prop_dialog != NULL) {
 		gtk_window_set_screen (GTK_WINDOW (launcher->prop_dialog),
 				       gtk_widget_get_screen (launcher->button));
@@ -754,11 +763,15 @@ launcher_properties (Launcher  *launcher)
 		return;
 	}
 
+	g_return_if_fail (launcher->app_info != NULL);
+
 	const gchar *location = g_desktop_app_info_get_filename (launcher->app_info);
 
+	uri = g_filename_to_uri (location, NULL, NULL);
 	launcher->prop_dialog = panel_ditem_editor_new (NULL,
-							location,
+							uri,
 							_("Launcher Properties"));
+	g_free (uri);
 
 	panel_widget_register_open_dialog (PANEL_WIDGET 
 					   (gtk_widget_get_parent (launcher->info->widget)),
@@ -885,14 +898,16 @@ launcher_new_saved (GtkWidget *dialog,
 	PanelWidget *panel;
 	int          pos;
 	const char  *uri;
+	char        *filename;
 
 	pos = GPOINTER_TO_INT (g_object_get_data (G_OBJECT (dialog), "pos"));
 	panel = g_object_get_data (G_OBJECT (dialog), "panel");
 
 	uri = panel_ditem_editor_get_uri (PANEL_DITEM_EDITOR (dialog));
-	if (panel_launcher_get_filename (uri) != NULL)
-		uri = panel_launcher_get_filename (uri);
-	panel_launcher_create (panel->toplevel, pos, uri);
+	filename = panel_launcher_get_filename (uri);
+	panel_launcher_create (panel->toplevel, pos, filename);
+
+	g_free (filename);
 }
 
 void
@@ -994,7 +1009,7 @@ panel_launcher_create_with_id (const char    *toplevel_id,
 	char        *path;
 	char        *id;
 	char        *no_uri;
-	const char  *new_location;
+	char        *new_location;
 
 	g_return_if_fail (location != NULL);
 
@@ -1005,7 +1020,7 @@ panel_launcher_create_with_id (const char    *toplevel_id,
 
 	path = g_strdup_printf ("%s%s/", PANEL_OBJECT_PATH, id);
 	settings = g_settings_new_with_path (PANEL_OBJECT_SCHEMA, path);
-	g_free (path); 
+	g_free (path);
 
 	no_uri = NULL;
 	/* if we have an URI, it might contain escaped characters (? : etc)
@@ -1017,13 +1032,14 @@ panel_launcher_create_with_id (const char    *toplevel_id,
 
 	new_location = panel_launcher_get_filename (no_uri);
 	if (new_location == NULL)
-		new_location = no_uri;
+		new_location = g_strdup (no_uri);
 
 	g_settings_set_string (settings, PANEL_OBJECT_LAUNCHER_LOCATION_KEY, new_location);
 
 	panel_profile_add_to_list (PANEL_GSETTINGS_OBJECTS, id);
 
 	g_free (no_uri);
+	g_free (new_location);
 	g_free (id);
 	g_object_unref (settings);
 }
