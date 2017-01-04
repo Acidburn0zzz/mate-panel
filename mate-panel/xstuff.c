@@ -21,7 +21,6 @@
 #include <gtk/gtk.h>
 
 #include <X11/Xlib.h>
-#include <X11/Xatom.h>
 
 #include "panel-enums.h"
 #include "xstuff.h"
