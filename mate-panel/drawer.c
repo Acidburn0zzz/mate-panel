@@ -325,23 +325,29 @@ create_drawer_applet (PanelToplevel    *toplevel,
 {
 	Drawer *drawer;
 	AtkObject *atk_obj;
+	GIcon *icon;
 
 	drawer = g_new0 (Drawer, 1);
 
 	drawer->toplevel = toplevel;
-
-	if (!use_custom_icon || !custom_icon || !custom_icon [0]) {
-		drawer->button = button_widget_new (PANEL_ICON_DRAWER, TRUE,
-						    orientation);
-	} else {
-		drawer->button = button_widget_new (custom_icon, TRUE,
-						    orientation);
-	}
+	drawer->button = button_widget_new (TRUE,
+					    orientation);
 
 	if (!drawer->button) {
 		g_free (drawer);
 		return NULL;
 	}
+
+	if (!use_custom_icon || !custom_icon || !custom_icon [0]) {
+		icon = panel_gicon_from_icon_name (PANEL_ICON_DRAWER);
+	} else {
+
+		icon = panel_gicon_from_icon_name (custom_icon);
+	}
+
+	button_widget_set_gicon (BUTTON_WIDGET (drawer->button), icon);
+	g_object_unref (icon);
+
 	atk_obj = gtk_widget_get_accessible (drawer->button);
 	atk_object_set_name (atk_obj, _("Drawer"));
 
@@ -427,12 +433,17 @@ panel_drawer_custom_icon_changed (GSettings *settings,
 	gboolean use_custom_icon = g_settings_get_boolean (settings, PANEL_OBJECT_USE_CUSTOM_ICON_KEY);
 	char *custom_icon = g_settings_get_string (settings, PANEL_OBJECT_CUSTOM_ICON_KEY);
 
+	GIcon *icon;
+
 	if (use_custom_icon && custom_icon != NULL && custom_icon [0] != '\0') {
-		button_widget_set_icon_name (BUTTON_WIDGET (drawer->button), custom_icon);
+		icon = panel_gicon_from_icon_name (custom_icon);
 	} else {
-		button_widget_set_icon_name (BUTTON_WIDGET (drawer->button), PANEL_ICON_DRAWER);
+		icon = panel_gicon_from_icon_name (PANEL_ICON_DRAWER);
 	}
 
+	button_widget_set_gicon (BUTTON_WIDGET (drawer->button), icon);
+
+	g_object_unref (icon);
 	g_free (custom_icon);
 }
 
@@ -707,8 +718,9 @@ panel_drawer_set_dnd_enabled (Drawer   *drawer,
 				     dnd_targets, 1,
 				     GDK_ACTION_MOVE);
 		//FIXME: we're forgetting the use_custom_icon case, here
-		gtk_drag_source_set_icon_name (drawer->button,
-					       button_widget_get_icon_name (BUTTON_WIDGET (drawer->button)));
+		GIcon *icon = button_widget_get_gicon (BUTTON_WIDGET (drawer->button));
+		gtk_drag_source_set_icon_gicon (drawer->button, icon);
+		g_object_unref (icon);
 
 		gtk_widget_set_has_window (drawer->button, FALSE);
 

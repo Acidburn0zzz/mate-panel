@@ -21,11 +21,10 @@
 #define BUTTON_WIDGET_GET_PRIVATE(o) (G_TYPE_INSTANCE_GET_PRIVATE ((o), BUTTON_TYPE_WIDGET, ButtonWidgetPrivate))
 
 struct _ButtonWidgetPrivate {
-	GtkIconTheme     *icon_theme;
 	GdkPixbuf        *pixbuf;
 	GdkPixbuf        *pixbuf_hc;
 
-	char             *filename;
+	GIcon            *icon;
 
 	PanelOrientation  orientation;
 
@@ -47,7 +46,7 @@ enum {
 	PROP_HAS_ARROW,
 	PROP_DND_HIGHLIGHT,
 	PROP_ORIENTATION,
-	PROP_ICON_NAME
+	PROP_GICON
 };
 
 #define BUTTON_WIDGET_DISPLACEMENT 2
@@ -121,8 +120,8 @@ button_widget_realize(GtkWidget *widget)
 
 	GTK_WIDGET_CLASS (button_widget_parent_class)->realize (widget);
 
-	BUTTON_WIDGET (widget)->priv->icon_theme = gtk_icon_theme_get_for_screen (gtk_widget_get_screen (widget));
-	g_signal_connect_object (BUTTON_WIDGET (widget)->priv->icon_theme,
+	GtkIconTheme *icon_theme = gtk_icon_theme_get_for_screen (gtk_widget_get_screen (widget));
+	g_signal_connect_object (icon_theme,
 				 "changed",
 				 G_CALLBACK (button_widget_icon_theme_changed),
 				 widget,
@@ -134,7 +133,8 @@ button_widget_realize(GtkWidget *widget)
 static void
 button_widget_unrealize (GtkWidget *widget)
 {
-	g_signal_handlers_disconnect_by_func (BUTTON_WIDGET (widget)->priv->icon_theme,
+	GtkIconTheme *icon_theme = gtk_icon_theme_get_for_screen (gtk_widget_get_screen (widget));
+	g_signal_handlers_disconnect_by_func (icon_theme,
 					      G_CALLBACK (button_widget_icon_theme_changed),
 					      widget);
 
@@ -158,32 +158,25 @@ button_widget_reload_pixbuf (ButtonWidget *button)
 {
 	button_widget_unset_pixbufs (button);
 
-	if (button->priv->size <= 1 || button->priv->icon_theme == NULL)
+	if (button->priv->size <= 1)
 		return;
 
-	if (button->priv->filename != NULL &&
-	    button->priv->filename [0] != '\0') {
-		char *error = NULL;
+	if (button->priv->icon != NULL) {
+		GtkIconTheme *icon_theme = gtk_icon_theme_get_for_screen (gtk_widget_get_screen (GTK_WIDGET(button)));
 
-		button->priv->pixbuf =
-			panel_load_icon (button->priv->icon_theme,
-					 button->priv->filename,
-					 button->priv->size,
-					 button->priv->orientation & PANEL_VERTICAL_MASK   ? button->priv->size : -1,
-					 button->priv->orientation & PANEL_HORIZONTAL_MASK ? button->priv->size : -1,
-					 &error);
-		if (error) {
+		GtkIconInfo * icon_info = gtk_icon_theme_lookup_by_gicon (icon_theme, button->priv->icon, button->priv->size, GTK_ICON_LOOKUP_FORCE_SIZE);
+		if (icon_info) {
+			button->priv->pixbuf = gtk_icon_info_load_icon (icon_info, NULL);
+			g_object_unref (icon_info);
+		}
+		if (button->priv->pixbuf == NULL) {
 			//FIXME: this is not rendered at button->priv->size
-			GtkIconTheme *icon_theme = gtk_icon_theme_get_default();
 			button->priv->pixbuf = gtk_icon_theme_load_icon (icon_theme,
 							       "image-missing",
 							       GTK_ICON_SIZE_BUTTON,
 							       GTK_ICON_LOOKUP_FORCE_SVG | GTK_ICON_LOOKUP_USE_BUILTIN,
 							       NULL);
-			g_free (error);
 		}
-
-		gtk_button_set_image (GTK_BUTTON (button), gtk_image_new_from_pixbuf (button->priv->pixbuf));
 	}
 
 	button->priv->pixbuf_hc = make_hc_pixbuf (button->priv->pixbuf);
@@ -194,7 +187,7 @@ button_widget_reload_pixbuf (ButtonWidget *button)
 static void
 button_widget_icon_theme_changed (ButtonWidget *button)
 {
-	if (button->priv->filename != NULL)
+	if (button->priv->icon != NULL)
 		button_widget_reload_pixbuf (button);
 }
 
@@ -205,8 +198,10 @@ button_widget_finalize (GObject *object)
 
 	button_widget_unset_pixbufs (button);
 
-	g_free (button->priv->filename);
-	button->priv->filename = NULL;
+	if (button->priv->icon) {
+		g_object_unref (button->priv->icon);
+		button->priv->icon = NULL;
+	}
 
 	G_OBJECT_CLASS (button_widget_parent_class)->finalize (object);
 }
@@ -239,8 +234,8 @@ button_widget_get_property (GObject    *object,
 	case PROP_ORIENTATION:
 		g_value_set_enum (value, button->priv->orientation);
 		break;
-	case PROP_ICON_NAME:
-		g_value_set_string (value, button->priv->filename);
+	case PROP_GICON:
+		g_value_set_object (value, button->priv->icon);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -276,8 +271,8 @@ button_widget_set_property (GObject      *object,
 	case PROP_ORIENTATION:
 		button_widget_set_orientation (button, g_value_get_enum (value));
 		break;
-	case PROP_ICON_NAME:
-		button_widget_set_icon_name (button, g_value_get_string (value));
+	case PROP_GICON:
+		button_widget_set_gicon (button, g_value_get_object (value));
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -590,11 +585,10 @@ button_widget_init (ButtonWidget *button)
 {
 	button->priv = BUTTON_WIDGET_GET_PRIVATE (button);
 
-	button->priv->icon_theme = NULL;
 	button->priv->pixbuf     = NULL;
 	button->priv->pixbuf_hc  = NULL;
 
-	button->priv->filename   = NULL;
+	button->priv->icon       = NULL;
 	
 	button->priv->orientation = PANEL_ORIENTATION_TOP;
 
@@ -679,17 +673,16 @@ button_widget_class_init (ButtonWidgetClass *klass)
 
 	g_object_class_install_property (
 			gobject_class,
-			PROP_ICON_NAME,
-			g_param_spec_string ("icon-name",
-					     "Icon Name",
+			PROP_GICON,
+			g_param_spec_string ("gicon",
+					     "GIcon",
 					     "The desired icon for the ButtonWidget",
 					     NULL,
 					     G_PARAM_READWRITE));
 }
 
 GtkWidget *
-button_widget_new (const char       *filename,
-		   gboolean          arrow,
+button_widget_new (gboolean          arrow,
 		   PanelOrientation  orientation)
 {
 	GtkWidget *retval;
@@ -698,9 +691,8 @@ button_widget_new (const char       *filename,
 			BUTTON_TYPE_WIDGET,
 			"has-arrow", arrow,
 			"orientation", orientation,
-			"icon-name", filename,
 			NULL);
-	
+
 	return retval;
 }
 
@@ -731,30 +723,32 @@ button_widget_get_activatable (ButtonWidget *button)
 }
 
 void
-button_widget_set_icon_name (ButtonWidget *button,
-			     const char   *icon_name)
+button_widget_set_gicon (ButtonWidget *button,
+			 GIcon        *icon)
 {
 	g_return_if_fail (BUTTON_IS_WIDGET (button));
 
-	if (button->priv->filename && icon_name &&
-	    !strcmp (button->priv->filename, icon_name))
+	if (g_icon_equal(button->priv->icon, icon))
 		return;
 
-	if (button->priv->filename)
-		g_free (button->priv->filename);
-	button->priv->filename = g_strdup (icon_name);
+	if (button->priv->icon)
+		g_object_unref (button->priv->icon);
+	button->priv->icon = g_object_ref (icon);
 
 	button_widget_reload_pixbuf (button);
 
-	g_object_notify (G_OBJECT (button), "icon-name");
+	g_object_notify (G_OBJECT (button), "gicon");
 }
 
-const char *
-button_widget_get_icon_name (ButtonWidget *button)
+GIcon *
+button_widget_get_gicon (ButtonWidget *button)
 {
 	g_return_val_if_fail (BUTTON_IS_WIDGET (button), NULL);
 
-	return button->priv->filename;
+	if (button->priv->icon)
+		return g_object_ref (button->priv->icon);
+
+	return NULL;
 }
 
 void
@@ -860,14 +854,6 @@ button_widget_get_ignore_leave (ButtonWidget *button)
 	g_return_val_if_fail (BUTTON_IS_WIDGET (button), FALSE);
 
 	return button->priv->ignore_leave;
-}
-
-GtkIconTheme *
-button_widget_get_icon_theme (ButtonWidget *button)
-{
-	g_return_val_if_fail (BUTTON_IS_WIDGET (button), NULL);
-
-	return button->priv->icon_theme;
 }
 
 GdkPixbuf *

@@ -476,8 +476,7 @@ create_launcher (const char *location)
 	launcher->destroy_handler = 0;
 
 	/* Icon will be setup later */
-	launcher->button = button_widget_new (NULL /* icon */,
-					      FALSE,
+	launcher->button = button_widget_new (FALSE,
 					      PANEL_ORIENTATION_TOP);
 
 	gtk_widget_show (launcher->button);
@@ -596,14 +595,16 @@ setup_button (Launcher *launcher)
 	if (!icon) {
 		gchar *exec;
 		exec = g_desktop_app_info_get_string (launcher->app_info, G_KEY_FILE_DESKTOP_KEY_EXEC);
-		icon = guess_icon_from_exec (button_widget_get_icon_theme (BUTTON_WIDGET (launcher->button)),
+		icon = guess_icon_from_exec (gtk_icon_theme_get_default(),
 					     exec);
 		g_free (exec);
 	}
 	if (!icon)
 		icon = g_strdup (PANEL_ICON_LAUNCHER);
 
-	button_widget_set_icon_name (BUTTON_WIDGET (launcher->button), icon);
+	GIcon *gicon = panel_gicon_from_icon_name (icon);
+	button_widget_set_gicon (BUTTON_WIDGET (launcher->button), gicon);
+	g_object_unref (gicon);
 	g_free (icon);
 }
 
@@ -1117,7 +1118,7 @@ void
 panel_launcher_set_dnd_enabled (Launcher *launcher,
 				gboolean  dnd_enabled)
 {
-	GdkPixbuf *pixbuf;
+	GIcon *icon;
 
 	if (dnd_enabled) {
 		static GtkTargetEntry dnd_targets[] = {
@@ -1131,11 +1132,10 @@ panel_launcher_set_dnd_enabled (Launcher *launcher,
 				     dnd_targets, 2,
 				     GDK_ACTION_COPY | GDK_ACTION_MOVE);
 		//FIXME: this doesn't work since the pixbuf isn't loaded yet
-		pixbuf = button_widget_get_pixbuf (BUTTON_WIDGET (launcher->button));
-		if (pixbuf) {
-			gtk_drag_source_set_icon_pixbuf (launcher->button,
-							 pixbuf);
-			g_object_unref (pixbuf);
+		icon = button_widget_get_gicon (BUTTON_WIDGET (launcher->button));
+		if (icon) {
+			gtk_drag_source_set_icon_gicon (launcher->button, icon);
+			g_object_unref (icon);
 		}
 		gtk_widget_set_has_window (launcher->button, FALSE);
 	

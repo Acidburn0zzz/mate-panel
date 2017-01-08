@@ -804,7 +804,9 @@ setup_menuitem_with_icon (GtkWidget   *menuitem,
 		icon = panel_gicon_from_icon_name (image_filename);
 
 	gtk_image_set_from_gicon (GTK_IMAGE(image), icon, icon_size);
-	g_object_unref (icon);
+
+	if (icon)
+		g_object_unref (icon);
 
 	gtk_widget_show (image);
 

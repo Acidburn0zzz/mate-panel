@@ -654,8 +654,11 @@ panel_action_button_set_type (PanelActionButton     *button,
 
 	button->priv->type = type;
 
-	if (actions [type].icon_name != NULL)
-		button_widget_set_icon_name (BUTTON_WIDGET (button), actions [type].icon_name);
+	if (actions [type].icon_name != NULL) {
+		GIcon *icon = panel_gicon_from_icon_name (actions [type].icon_name);
+		button_widget_set_gicon (BUTTON_WIDGET (button), icon);
+		g_object_unref (icon);
+	}
 
 	panel_util_set_tooltip_text (GTK_WIDGET (button),
 				     _(actions [type].tooltip));
@@ -695,13 +698,6 @@ panel_action_button_connect_to_gsettings (PanelActionButton *button)
 
 	panel_lockdown_notify_add (G_CALLBACK (panel_action_button_update_sensitivity),
 				   button);
-}
-
-static void
-panel_action_button_style_updated (PanelActionButton *button)
-{
-	if (actions [button->priv->type].icon_name != NULL)
-		button_widget_set_icon_name (BUTTON_WIDGET (button), actions [button->priv->type].icon_name);
 }
 
 static void
@@ -745,9 +741,6 @@ panel_action_button_load (PanelActionButtonType  type,
 		actions [button->priv->type].setup_menu (button);
 
 	panel_action_button_connect_to_gsettings (button);
-
-	g_signal_connect (button, "style-updated",
-			  G_CALLBACK (panel_action_button_style_updated), NULL);
 }
 
 void

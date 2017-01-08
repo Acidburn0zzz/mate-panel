@@ -731,10 +731,13 @@ static void
 panel_menu_button_set_icon (PanelMenuButton *button)
 {
 	char *icon_path;
+	GIcon *icon;
 
 	icon_path = panel_menu_button_get_icon (button);
-	button_widget_set_icon_name (BUTTON_WIDGET (button), icon_path);
+	icon = panel_gicon_from_icon_name (icon_path);
+	button_widget_set_gicon (BUTTON_WIDGET (button), icon);
 
+	g_object_unref (icon);
 	g_free (icon_path);
 }
 
