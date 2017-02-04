@@ -30,11 +30,27 @@
 #include <gdk/gdkx.h>
 #include <X11/Xatom.h>
 
-G_DEFINE_TYPE (NaTrayChild, na_tray_child, GTK_TYPE_SOCKET)
+#include "na-item.h"
+
+enum
+{
+  PROP_0,
+  PROP_ORIENTATION
+};
+
+static void na_item_init (NaItemInterface *iface);
+
+G_DEFINE_TYPE_WITH_CODE (NaTrayChild, na_tray_child, GTK_TYPE_SOCKET,
+                         G_IMPLEMENT_INTERFACE (GTK_TYPE_ORIENTABLE, NULL)
+                         G_IMPLEMENT_INTERFACE (NA_TYPE_ITEM, na_item_init))
 
 static void
 na_tray_child_finalize (GObject *object)
 {
+  NaTrayChild *child = NA_TRAY_CHILD (object);
+
+  g_clear_pointer (&child->id, g_free);
+
   G_OBJECT_CLASS (na_tray_child_parent_class)->finalize (object);
 }
 
@@ -223,9 +239,165 @@ na_tray_child_draw (GtkWidget *widget,
   return FALSE;
 }
 
+/* Children with alpha channels have been set to be composited by calling
+ * gdk_window_set_composited(). We need to paint these children ourselves.
+ *
+ * FIXME: is that still needed on GTK3?  Seems like it could be done in draw().
+ */
+static gboolean
+na_tray_child_draw_on_parent (NaItem    *item,
+                              GtkWidget *parent,
+                              cairo_t   *parent_cr)
+{
+  if (na_tray_child_has_alpha (NA_TRAY_CHILD (item)))
+    {
+      GtkWidget    *widget = GTK_WIDGET (item);
+      GtkAllocation parent_allocation = { 0 };
+      GtkAllocation allocation;
+
+      /* if the parent doesn't have a window, our allocation is not relative to
+       * the context coordinates but to the parent's allocation */
+      if (! gtk_widget_get_has_window (parent))
+	gtk_widget_get_allocation (parent, &parent_allocation);
+
+      gtk_widget_get_allocation (widget, &allocation);
+      allocation.x -= parent_allocation.x;
+      allocation.y -= parent_allocation.y;
+
+      cairo_save (parent_cr);
+      gdk_cairo_set_source_window (parent_cr,
+                                   gtk_widget_get_window (widget),
+                                   allocation.x,
+                                   allocation.y);
+      cairo_rectangle (parent_cr, allocation.x, allocation.y, allocation.width, allocation.height);
+      cairo_clip (parent_cr);
+      cairo_paint (parent_cr);
+      cairo_restore (parent_cr);
+    }
+
+  return TRUE;
+}
+
+static void
+na_tray_child_get_property (GObject    *object,
+                            guint       property_id,
+                            GValue     *value,
+                            GParamSpec *pspec)
+{
+  switch (property_id)
+    {
+      case PROP_ORIENTATION:
+        /* whatever */
+        g_value_set_enum (value, GTK_ORIENTATION_HORIZONTAL);
+        break;
+
+      default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+
+static void
+na_tray_child_set_property (GObject      *object,
+                            guint         property_id,
+                            const GValue *value,
+                            GParamSpec   *pspec)
+{
+  switch (property_id)
+    {
+      case PROP_ORIENTATION:
+	/* we so don't care */
+        break;
+
+      default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
+        break;
+    }
+}
+
+/* Hack to keep order of some known system-tray elements.  For a wm_class
+ * match, give it category @category and ID @id.
+ *
+ * TODO: improve this to play well if one of those elements were to start
+ *       using SNI instead */
+static const struct
+{
+  const gchar *const wm_class;
+  const gchar *const id;
+  NaItemCategory category;
+} wmclass_categories[] = {
+  /* order is LTR, so higher category and higher ASCII ordering on the right */
+  { "keyboard",                   "~01-keyboard",  NA_ITEM_CATEGORY_HARDWARE },
+  { "Mate-volume-control-applet", "~02-volume",    NA_ITEM_CATEGORY_HARDWARE },
+  { "Bluetooth-applet",           "~03-bluetooth", NA_ITEM_CATEGORY_HARDWARE },
+  { "Nm-applet",                  "~04-network",   NA_ITEM_CATEGORY_HARDWARE },
+  { "Mate-power-manager",         "~05-battery",   NA_ITEM_CATEGORY_HARDWARE },
+};
+
+static const gchar *
+na_tray_child_get_id (NaItem *item)
+{
+  NaTrayChild *child = NA_TRAY_CHILD (item);
+
+  if (! child->id)
+    {
+      char *res_name = NULL;
+      char *res_class = NULL;
+      guint i;
+
+      na_tray_child_get_wm_class (child, &res_name, &res_class);
+
+      for (i = 0; i < G_N_ELEMENTS (wmclass_categories) && ! child->id; i++)
+	{
+	  if (g_strcmp0 (res_class, wmclass_categories[i].wm_class) == 0)
+	    child->id = g_strdup (wmclass_categories[i].id);
+	}
+
+      if (! child->id)
+	child->id = res_name;
+      else
+	g_free (res_name);
+
+      g_free (res_class);
+    }
+
+  return child->id;
+}
+
+static NaItemCategory
+na_tray_child_get_category (NaItem *item)
+{
+  guint i;
+  NaItemCategory category = NA_ITEM_CATEGORY_APPLICATION_STATUS;
+  char *res_class = NULL;
+
+  na_tray_child_get_wm_class (NA_TRAY_CHILD (item), NULL, &res_class);
+
+  for (i = 0; i < G_N_ELEMENTS (wmclass_categories); i++)
+    {
+      if (g_strcmp0 (res_class, wmclass_categories[i].wm_class) == 0)
+	{
+	  category = wmclass_categories[i].category;
+	  break;
+	}
+    }
+
+  return category;
+}
+
+static void
+na_item_init (NaItemInterface *iface)
+{
+  iface->get_id = na_tray_child_get_id;
+  iface->get_category = na_tray_child_get_category;
+
+  iface->draw_on_parent = na_tray_child_draw_on_parent;
+}
+
 static void
 na_tray_child_init (NaTrayChild *child)
 {
+  child->id = NULL;
 }
 
 static void
@@ -238,12 +410,18 @@ na_tray_child_class_init (NaTrayChildClass *klass)
   widget_class = (GtkWidgetClass *)klass;
 
   gobject_class->finalize = na_tray_child_finalize;
+  gobject_class->get_property = na_tray_child_get_property;
+  gobject_class->set_property = na_tray_child_set_property;
+
   widget_class->style_set = na_tray_child_style_set;
   widget_class->realize = na_tray_child_realize;
   widget_class->get_preferred_width = na_tray_child_get_preferred_width;
   widget_class->get_preferred_height = na_tray_child_get_preferred_height;
   widget_class->size_allocate = na_tray_child_size_allocate;
   widget_class->draw = na_tray_child_draw;
+
+  /* we don't really care actually */
+  g_object_class_override_property (gobject_class, PROP_ORIENTATION, "orientation");
 }
 
 GtkWidget *
