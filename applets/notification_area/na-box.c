@@ -106,15 +106,15 @@ item_added_cb (NaHost *host,
   g_return_if_fail (NA_IS_ITEM (item));
   g_return_if_fail (NA_IS_BOX (self));
 
+  g_object_bind_property (self, "orientation",
+                          item, "orientation",
+                          G_BINDING_SYNC_CREATE);
+
   self->items = g_slist_prepend (self->items, item);
   gtk_box_pack_start (GTK_BOX (self), GTK_WIDGET (item), FALSE, FALSE, 0);
 
   self->items = g_slist_sort (self->items, compare_items);
   gtk_container_foreach (GTK_CONTAINER (self), reorder_items, self);
-
-  g_object_bind_property (self, "orientation",
-                          item, "orientation",
-                          G_BINDING_DEFAULT);
 }
 
 static void
@@ -243,14 +243,19 @@ na_box_realize (GtkWidget *widget)
   NaBox *self = NA_BOX (widget);
   GdkScreen *screen;
   GtkOrientation orientation;
+  NaHost *tray_host;
 
   GTK_WIDGET_CLASS (na_box_parent_class)->realize (widget);
 
   /* Instantiate the hosts now we have a screen */
   screen = gtk_widget_get_screen (GTK_WIDGET (self));
   orientation = gtk_orientable_get_orientation (GTK_ORIENTABLE (self));
+  tray_host = na_tray_new_for_screen (screen, orientation);
+  g_object_bind_property (self, "orientation",
+                          tray_host, "orientation",
+                          G_BINDING_DEFAULT);
 
-  add_host (self, na_tray_new_for_screen (screen, orientation));
+  add_host (self, tray_host);
   add_host (self, sn_host_v0_new ());
 }
 
